@@ -18,7 +18,7 @@ export default function LoginPage() {
     setError("");
     try {
       const res = await login(email, password);
-      
+
       const token = res.token || res.data?.token;
       const user = res.user || res.data?.user || res.data;
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
           localStorage.setItem("user", JSON.stringify(user));
         }
         // Redirect to home or profile
-        router.push("/");
+        window.location.href = "/";
       } else {
         setError(res.message || "Đăng nhập thất bại");
       }

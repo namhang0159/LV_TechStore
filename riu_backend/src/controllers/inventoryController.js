@@ -29,8 +29,22 @@ const getTransactionById = async (req, res) => {
   }
 };
 
+const getAvailableSerials = async (req, res) => {
+  try {
+    const { variant_id, warehouse_id } = req.query;
+    if (!variant_id || !warehouse_id) {
+      return res.status(400).json({ success: false, message: "variant_id and warehouse_id are required" });
+    }
+    const result = await inventoryService.getAvailableSerialsService(variant_id, warehouse_id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getInventory,
   createTransaction,
-  getTransactionById
+  getTransactionById,
+  getAvailableSerials
 };

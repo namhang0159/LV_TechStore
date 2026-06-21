@@ -27,7 +27,7 @@ export const getOrderById = async (id: number) => {
 export const getOrderByCode = async (code: string) => {
     return await axios.get(`/api/admin/orders/code/${code}`);
 }
-export const updateOrderStatus = async (id: number, data: { order_status?: string, payment_status?: string, note?: string }) => {
+export const updateOrderStatus = async (id: number, data: { order_status?: string, payment_status?: string, note?: string, serial_numbers?: any[] }) => {
     return await axios.put(`/api/admin/orders/${id}/status`, data);
 }
 export const getAllCategory = async () => {
@@ -131,4 +131,7 @@ export const getAllSuppliers = async () => {
 }
 export const getInventoryTransactionById = async (id: number) => {
     return await axios.get(`/api/inventory/transactions/${id}`);
+}
+export const getAvailableSerials = async (variantId: number, warehouseId: number) => {
+    return await axios.get(`/api/admin/inventory/serials?variant_id=${variantId}&warehouse_id=${warehouseId}`);
 }

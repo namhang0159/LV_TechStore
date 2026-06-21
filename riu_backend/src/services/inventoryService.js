@@ -185,8 +185,25 @@ const getTransactionByIdService = async (id) => {
   }
 };
 
+const getAvailableSerialsService = async (variantId, warehouseId) => {
+  try {
+    const serials = await SerialNumber.findAll({
+      where: {
+        variant_id: variantId,
+        warehouse_id: warehouseId,
+        status: 'available'
+      },
+      attributes: ['id', 'imei_or_serial_number', 'status']
+    });
+    return { success: true, data: serials };
+  } catch (error) {
+    throw new Error("Error fetching available serials: " + error.message);
+  }
+};
+
 module.exports = {
   getInventoryService,
   createTransactionService,
-  getTransactionByIdService
+  getTransactionByIdService,
+  getAvailableSerialsService
 };

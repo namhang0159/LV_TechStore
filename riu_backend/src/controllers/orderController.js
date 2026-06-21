@@ -43,7 +43,7 @@ const createOrder = async (req, res) => {
   try {
     // req.user is set by authMiddleware
     const userId = req.user.id;
-    const result = await createOrderService(userId, req.body);
+    const result = await createOrderService(userId, req.body, req);
     return res.status(201).json(result);
   } catch (error) {
     return res.status(500).json({

@@ -6,15 +6,20 @@ import Link from 'next/link'
 import {
   ArrowLeft, Package, CreditCard, User, MapPin,
   Calendar, FileText, Truck, Store, ShieldCheck,
-  Tag, Printer, Phone
+  Tag, Printer, Phone, X
 } from 'lucide-react'
-import { getOrderById, updateOrderStatus } from '@/util/api'
+import { getOrderById, updateOrderStatus, getAvailableSerials } from '@/util/api'
 
 export default function OrderDetailsPage() {
   const params = useParams()
   const id = params.id as string
   const [order, setOrder] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const [isShippingModalOpen, setIsShippingModalOpen] = useState(false)
+  const [isFetchingSerials, setIsFetchingSerials] = useState(false)
+  const [availableSerialsByItem, setAvailableSerialsByItem] = useState<Record<number, any[]>>({})
+  const [selectedSerialsByItem, setSelectedSerialsByItem] = useState<Record<number, number[]>>({})
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -36,15 +41,67 @@ export default function OrderDetailsPage() {
   }, [id])
 
   const handleStatusChange = async (type: 'order_status' | 'payment_status', value: string) => {
+    if (type === 'order_status' && value === 'shipping') {
+      setIsShippingModalOpen(true)
+      setIsFetchingSerials(true)
+      try {
+        const serialsMap: Record<number, any[]> = {}
+        const selectedMap: Record<number, number[]> = {}
+        for (const item of order.OrderItems) {
+          const res = await getAvailableSerials(item.variant_id, order.warehouse_id)
+          serialsMap[item.id] = res.data?.data || []
+          selectedMap[item.id] = []
+        }
+        setAvailableSerialsByItem(serialsMap)
+        setSelectedSerialsByItem(selectedMap)
+      } catch (error) {
+        console.error('Failed to fetch serials', error)
+        alert('Có lỗi khi tải danh sách Serial/IMEI')
+      } finally {
+        setIsFetchingSerials(false)
+      }
+      return
+    }
+
     try {
       const response = await updateOrderStatus(Number(id), { [type]: value })
       if (response.data && response.data.data) {
         setOrder(response.data.data)
       }
-
     } catch (error: any) {
       console.error(`Failed to update ${type}`, error)
       const errorMessage = error.response?.data?.message || `Failed to update ${type.replace('_', ' ')}. Please try again.`
+      alert(errorMessage)
+    }
+  }
+
+  const handleShippingSubmit = async () => {
+    // Validate if all serials are selected
+    for (const item of order.OrderItems) {
+      const selected = selectedSerialsByItem[item.id] || []
+      if (selected.length !== item.quantity) {
+        alert(`Vui lòng chọn đủ ${item.quantity} mã Serial/IMEI cho sản phẩm ${item.product_name_snapshot}`)
+        return
+      }
+    }
+
+    const serial_numbers = order.OrderItems.map((item: any) => ({
+      order_item_id: item.id,
+      serial_ids: selectedSerialsByItem[item.id] || []
+    }))
+
+    try {
+      const response = await updateOrderStatus(Number(id), { 
+        order_status: 'shipping',
+        serial_numbers 
+      })
+      if (response.data && response.data.data) {
+        setOrder(response.data.data)
+        setIsShippingModalOpen(false)
+      }
+    } catch (error: any) {
+      console.error('Failed to update shipping status', error)
+      const errorMessage = error.response?.data?.message || 'Có lỗi khi cập nhật trạng thái đơn hàng. Vui lòng thử lại.'
       alert(errorMessage)
     }
   }
@@ -417,6 +474,129 @@ export default function OrderDetailsPage() {
 
         </div>
       </div>
+
+      {/* Shipping Modal */}
+      {isShippingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Truck className="size-5 text-indigo-600" />
+                Chuẩn bị xuất kho (Shipping)
+              </h3>
+              <button 
+                onClick={() => setIsShippingModalOpen(false)}
+                className="p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="bg-indigo-50 text-indigo-700 p-4 rounded-lg text-sm flex gap-3">
+                <ShieldCheck className="size-5 flex-shrink-0" />
+                <p>Vui lòng chọn chính xác mã Serial/IMEI cho từng sản phẩm trước khi xuất kho. Thao tác này sẽ tự động trừ hàng trong kho và kích hoạt bảo hành điện tử (nếu có).</p>
+              </div>
+
+              {isFetchingSerials ? (
+                <div className="py-10 text-center text-slate-500">Đang tải danh sách mã Serial/IMEI...</div>
+              ) : (
+                <div className="space-y-6">
+                  {order.OrderItems?.map((item: any) => {
+                    const availableSerials = availableSerialsByItem[item.id] || []
+                    const selectedIds = selectedSerialsByItem[item.id] || []
+                    
+                    const handleSelectSerial = (serialId: number) => {
+                      setSelectedSerialsByItem(prev => {
+                        const current = prev[item.id] || []
+                        if (current.includes(serialId)) {
+                          return { ...prev, [item.id]: current.filter(id => id !== serialId) }
+                        }
+                        if (current.length >= item.quantity) {
+                          alert(`Bạn chỉ cần chọn ${item.quantity} mã cho sản phẩm này.`)
+                          return prev
+                        }
+                        return { ...prev, [item.id]: [...current, serialId] }
+                      })
+                    }
+
+                    return (
+                      <div key={item.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold text-slate-800">{item.product_name_snapshot}</p>
+                            <p className="text-sm text-slate-500">{item.variant_name_snapshot}</p>
+                          </div>
+                          <div className="text-sm font-medium text-slate-700 bg-white px-3 py-1 rounded-md border border-slate-200">
+                            Cần xuất: <span className="text-indigo-600 font-bold">{item.quantity}</span>
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <p className="text-sm text-slate-600 mb-3">Chọn mã Serial/IMEI tương ứng:</p>
+                          {availableSerials.length === 0 ? (
+                            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-100">
+                              Không có mã Serial/IMEI khả dụng trong kho này!
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {availableSerials.map((serial: any) => {
+                                const isSelected = selectedIds.includes(serial.id)
+                                return (
+                                  <label 
+                                    key={serial.id} 
+                                    className={`
+                                      flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors text-sm
+                                      ${isSelected 
+                                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-medium' 
+                                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                      }
+                                    `}
+                                  >
+                                    <input 
+                                      type="checkbox" 
+                                      className="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                                      checked={isSelected}
+                                      onChange={() => handleSelectSerial(serial.id)}
+                                      disabled={!isSelected && selectedIds.length >= item.quantity}
+                                    />
+                                    <span className="truncate" title={serial.imei_or_serial_number}>{serial.imei_or_serial_number}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          )}
+                          <div className="mt-3 text-sm text-right">
+                            <span className="text-slate-500">Đã chọn: </span>
+                            <span className={`font-bold ${selectedIds.length === item.quantity ? 'text-emerald-600' : 'text-orange-600'}`}>
+                              {selectedIds.length} / {item.quantity}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 rounded-b-xl">
+              <button 
+                onClick={() => setIsShippingModalOpen(false)}
+                className="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={handleShippingSubmit}
+                disabled={isFetchingSerials}
+                className="px-6 py-2 rounded-lg font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Xác nhận Xuất kho
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
