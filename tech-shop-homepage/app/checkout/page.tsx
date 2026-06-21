@@ -30,7 +30,7 @@ import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 export default function Checkout() {
   const [expandedAddress, setExpandedAddress] = useState(true);
   const [selectedDelivery, setSelectedDelivery] = useState("standard");
-  const [selectedPayment, setSelectedPayment] = useState("zalo");
+  const [selectedPayment, setSelectedPayment] = useState("vnpay");
   const { addresses, loading: addressLoading, refetch: refetchAddresses } = useAddress();
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -64,15 +64,27 @@ export default function Checkout() {
 
   useEffect(() => {
     if (cart && cart.CartItems) {
-      const formattedItems = cart.CartItems.map((item: any) => ({
-        id: item.id,
-        name: item.ProductVariant?.Product?.name || "Unknown Product",
-        price: parseFloat(item.ProductVariant?.price || "0"),
-        quantity: item.quantity,
-        image: item.ProductVariant?.ProductVariantImages?.[0]?.image_url || "No image",
-        variantId: item.ProductVariant?.id,
-        variantName: item.ProductVariant?.AttributeValues?.map((attr: any) => attr.value).join(', ') || "",
-      }));
+      const formattedItems = cart.CartItems.map((item: any) => {
+        let availableStock = 0;
+        if (item.ProductVariant?.Inventories) {
+          availableStock = item.ProductVariant.Inventories.reduce((total: number, inv: any) => {
+            const qty = parseInt(inv.quantity) || 0;
+            const reserved = parseInt(inv.reserved_quantity) || 0;
+            return total + Math.max(0, qty - reserved);
+          }, 0);
+        }
+
+        return {
+          id: item.id,
+          name: item.ProductVariant?.Product?.name || "Unknown Product",
+          price: parseFloat(item.ProductVariant?.price || "0"),
+          quantity: item.quantity,
+          image: item.ProductVariant?.ProductVariantImages?.[0]?.image_url || "No image",
+          variantId: item.ProductVariant?.id,
+          variantName: item.ProductVariant?.AttributeValues?.map((attr: any) => attr.value).join(', ') || "",
+          availableStock: availableStock,
+        };
+      });
       setCartItems(formattedItems);
     } else {
       setCartItems([]);
@@ -96,7 +108,13 @@ export default function Checkout() {
   const shippingFee = subtotal > 0 && selectedDelivery === "standard" ? 21000 : 0;
   const orderTotal = Math.max(0, subtotal + shippingFee - discountAmount);
 
+  const hasInsufficientStock = cartItems.some(item => item.quantity > (item.availableStock || 0));
+
   const handlePlaceOrder = async () => {
+    if (hasInsufficientStock) {
+      alert("Giỏ hàng có sản phẩm vượt quá số lượng tồn kho. Vui lòng quay lại giỏ hàng kiểm tra.");
+      return;
+    }
     if (!selectedAddressId) {
       alert("Vui lòng chọn địa chỉ giao hàng");
       return;
@@ -133,10 +151,15 @@ export default function Checkout() {
         }))
       };
 
-      await createOrder(orderData);
+      const res = await createOrder(orderData);
       await clearCart();
       localStorage.removeItem("appliedVoucher");
-      route.push("/checkout/success");
+      
+      if (res.paymentUrl) {
+        window.location.href = res.paymentUrl;
+      } else {
+        route.push("/checkout/success");
+      }
     } catch (err: any) {
       console.error(err);
       alert("Có lỗi xảy ra khi đặt hàng: " + (err.response?.data?.message || err.message));
@@ -301,15 +324,21 @@ export default function Checkout() {
                   <h2 className="font-bold text-lg text-slate-900">Phương thức thanh toán</h2>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4 pl-11">
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPayment === "zalo" ? "border-violet-600 bg-violet-50/30 shadow-sm" : "border-slate-200 hover:border-violet-300"}`}>
-                    <input type="radio" name="payment" value="zalo" checked={selectedPayment === "zalo"} onChange={() => setSelectedPayment("zalo")} className="w-4 h-4 text-violet-600" />
-                    <Wallet className={`w-6 h-6 ${selectedPayment === "zalo" ? "text-violet-600" : "text-slate-400"}`} />
-                    <span className="font-bold text-slate-800">Ví ZaloPay</span>
+                  <label className="flex items-center gap-3 p-4 rounded-xl border-2 cursor-not-allowed opacity-60 transition-all border-slate-200 bg-slate-50">
+                    <input type="radio" name="payment" value="zalo" disabled className="w-4 h-4 text-slate-400" />
+                    <Wallet className="w-6 h-6 text-slate-400" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-600">Ví ZaloPay</span>
+                      <span className="text-xs text-red-500 font-medium">Đang bảo trì</span>
+                    </div>
                   </label>
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPayment === "momo" ? "border-violet-600 bg-violet-50/30 shadow-sm" : "border-slate-200 hover:border-violet-300"}`}>
-                    <input type="radio" name="payment" value="momo" checked={selectedPayment === "momo"} onChange={() => setSelectedPayment("momo")} className="w-4 h-4 text-violet-600" />
-                    <Wallet className={`w-6 h-6 ${selectedPayment === "momo" ? "text-violet-600" : "text-slate-400"}`} />
-                    <span className="font-bold text-slate-800">Ví MoMo</span>
+                  <label className="flex items-center gap-3 p-4 rounded-xl border-2 cursor-not-allowed opacity-60 transition-all border-slate-200 bg-slate-50">
+                    <input type="radio" name="payment" value="momo" disabled className="w-4 h-4 text-slate-400" />
+                    <Wallet className="w-6 h-6 text-slate-400" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-600">Ví MoMo</span>
+                      <span className="text-xs text-red-500 font-medium">Đang bảo trì</span>
+                    </div>
                   </label>
                   <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPayment === "vnpay" ? "border-violet-600 bg-violet-50/30 shadow-sm" : "border-slate-200 hover:border-violet-300"}`}>
                     <input type="radio" name="payment" value="vnpay" checked={selectedPayment === "vnpay"} onChange={() => setSelectedPayment("vnpay")} className="w-4 h-4 text-violet-600" />
@@ -380,7 +409,7 @@ export default function Checkout() {
 
                 <Button
                   onClick={handlePlaceOrder}
-                  disabled={isSubmitting || cartItems.length === 0}
+                  disabled={isSubmitting || cartItems.length === 0 || hasInsufficientStock}
                   className="w-full relative overflow-hidden group bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-700 hover:to-rose-600 text-white py-6 text-lg rounded-xl font-bold shadow-lg shadow-red-500/30 hover:shadow-red-500/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">

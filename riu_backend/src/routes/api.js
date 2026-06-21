@@ -99,6 +99,7 @@ const inventoryController = require("../controllers/inventoryController");
 router.get("/inventory", inventoryController.getInventory);
 router.post("/inventory/transactions", authMiddleware, inventoryController.createTransaction);
 router.get("/inventory/transactions/:id", authMiddleware, adminMiddleware, inventoryController.getTransactionById);
+router.get("/admin/inventory/serials", authMiddleware, adminMiddleware, inventoryController.getAvailableSerials);
 
 // Order routes
 router.post("/orders", authMiddleware, createOrder);

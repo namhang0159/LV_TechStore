@@ -80,6 +80,19 @@ export default function ProductDetailsSection({
     });
   }, [selectedOptions, variants]);
 
+  const availableStock = useMemo(() => {
+    if (!selectedVariant) return 0;
+    if (!selectedVariant.Inventories || selectedVariant.Inventories.length === 0) return 0;
+    
+    return selectedVariant.Inventories.reduce((total: number, inv: any) => {
+      const qty = parseInt(inv.quantity) || 0;
+      const reserved = parseInt(inv.reserved_quantity) || 0;
+      return total + Math.max(0, qty - reserved);
+    }, 0);
+  }, [selectedVariant]);
+
+  const isOutOfStock = selectedVariant && availableStock <= 0;
+
   const handleAddToCart = async () => {
     if (!selectedVariant) return;
     
@@ -238,11 +251,15 @@ export default function ProductDetailsSection({
             {attributes.length > 0 && !selectedVariant && (
                <p className="text-red-500 text-sm mb-4 font-medium">Phiên bản bạn chọn hiện không có sẵn, vui lòng chọn cấu hình khác.</p>
             )}
+            
+            {isOutOfStock && (
+               <p className="text-red-500 text-sm mb-4 font-medium">Phiên bản này hiện đã hết hàng.</p>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
                <button 
-                 disabled={(attributes.length > 0 && !selectedVariant) || isAddingToCart}
+                 disabled={(attributes.length > 0 && !selectedVariant) || isAddingToCart || isOutOfStock}
                  onClick={handleAddToCart}
                  className="w-full sm:flex-[2] bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                >
@@ -250,7 +267,7 @@ export default function ProductDetailsSection({
                  {isAddingToCart ? "Đang thêm..." : "Thêm vào giỏ"}
                </button>
                <button 
-                 disabled={(attributes.length > 0 && !selectedVariant) || isAddingToCart}
+                 disabled={(attributes.length > 0 && !selectedVariant) || isAddingToCart || isOutOfStock}
                  onClick={handleBuyNow}
                  className="w-full sm:flex-[2] bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
                >
@@ -283,7 +300,7 @@ export default function ProductDetailsSection({
             <div className="border-t border-gray-200 pt-6 text-sm">
                <p className="mb-2"><span className="font-semibold text-gray-600 w-24 inline-block">Danh mục:</span> {product.Category?.name}</p>
                <p className="mb-2"><span className="font-semibold text-gray-600 w-24 inline-block">Thương hiệu:</span> {product.Brand?.name}</p>
-               <p className="mb-2"><span className="font-semibold text-gray-600 w-24 inline-block">Trạng thái:</span> {product.status === 'active' ? 'Còn hàng' : 'Hết hàng'}</p>
+               <p className="mb-2"><span className="font-semibold text-gray-600 w-24 inline-block">Trạng thái:</span> {isOutOfStock ? <span className="text-red-600 font-bold">Hết hàng</span> : <span className="text-green-600 font-bold">Còn hàng</span>}</p>
                <p className="mb-2"><span className="font-semibold text-gray-600 w-24 inline-block">Bảo hành:</span> {product.warranty_months} tháng</p>
                {product.Tags && product.Tags.length > 0 && (
                  <div className="mt-4 flex flex-wrap gap-2">

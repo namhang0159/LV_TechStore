@@ -16,6 +16,11 @@ const getCartService = async (userId) => {
                 {
                   model: db.AttributeValue,
                   include: [{ model: db.Attribute, attributes: ['id', 'name'] }]
+                },
+                {
+                  model: db.Inventory,
+                  attributes: ["warehouse_id", "quantity", "reserved_quantity"],
+                  required: false,
                 }
               ]
             }

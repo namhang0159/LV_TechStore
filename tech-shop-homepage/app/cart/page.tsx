@@ -20,6 +20,7 @@ interface CartItem {
   productSlug?: string;
   variantId?: number;
   attributes?: any[];
+  availableStock?: number;
 }
 
 export default function ShoppingCart() {
@@ -41,16 +42,28 @@ export default function ShoppingCart() {
 
   useEffect(() => {
     if (cart && cart.CartItems) {
-      const formattedItems = cart.CartItems.map((item: any) => ({
-        id: item.id,
-        name: item.ProductVariant?.Product?.name || "Unknown Product",
-        price: parseFloat(item.ProductVariant?.price || "0"),
-        quantity: item.quantity,
-        image: item.ProductVariant?.ProductVariantImages?.[0]?.image_url || "No image",
-        productSlug: item.ProductVariant?.Product?.slug,
-        variantId: item.ProductVariant?.id,
-        attributes: item.ProductVariant?.AttributeValues || [],
-      }));
+      const formattedItems = cart.CartItems.map((item: any) => {
+        let availableStock = 0;
+        if (item.ProductVariant?.Inventories) {
+          availableStock = item.ProductVariant.Inventories.reduce((total: number, inv: any) => {
+            const qty = parseInt(inv.quantity) || 0;
+            const reserved = parseInt(inv.reserved_quantity) || 0;
+            return total + Math.max(0, qty - reserved);
+          }, 0);
+        }
+
+        return {
+          id: item.id,
+          name: item.ProductVariant?.Product?.name || "Unknown Product",
+          price: parseFloat(item.ProductVariant?.price || "0"),
+          quantity: item.quantity,
+          image: item.ProductVariant?.ProductVariantImages?.[0]?.image_url || "No image",
+          productSlug: item.ProductVariant?.Product?.slug,
+          variantId: item.ProductVariant?.id,
+          attributes: item.ProductVariant?.AttributeValues || [],
+          availableStock: availableStock,
+        };
+      });
       setCartItems(formattedItems);
     } else {
       setCartItems([]);
@@ -137,6 +150,8 @@ export default function ShoppingCart() {
   const shippingFee = subtotal > 0 ? 21000 : 0;
   const orderTotal = Math.max(0, subtotal + shippingFee - discountAmount);
 
+  const hasInsufficientStock = cartItems.some(item => item.quantity > (item.availableStock || 0));
+
   if (loading && !cart) {
     return <div className="min-h-screen bg-white text-foreground flex items-center justify-center">Đang tải giỏ hàng...</div>;
   }
@@ -218,6 +233,11 @@ export default function ShoppingCart() {
                                   Thay đổi <ChevronDown className="w-3 h-3 ml-0.5" />
                                 </button>
                               </div>
+                            )}
+                            {item.quantity > (item.availableStock || 0) && (
+                              <p className="text-xs text-red-600 mt-2 font-semibold bg-red-50 p-1 rounded inline-block border border-red-200">
+                                ⚠️ Vượt quá số lượng tồn kho (Còn lại: {item.availableStock || 0})
+                              </p>
                             )}
                           </div>
                           <button
@@ -366,7 +386,7 @@ export default function ShoppingCart() {
                       }
                       route.push("/checkout");
                     }}
-                    disabled={cartItems.length === 0}
+                    disabled={cartItems.length === 0 || hasInsufficientStock || isUpdating}
                   >
                     Tiếp tục thanh toán/tiếp tục
                   </Button>

@@ -9,6 +9,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api", authRoutes);
+const paymentGatewayRoute = require("./routes/paymentGatewayRoute");
+app.use("/api/payments", paymentGatewayRoute);
 app.get("/", (req, res) => {
   res.json({ message: "Hello API" });
 });

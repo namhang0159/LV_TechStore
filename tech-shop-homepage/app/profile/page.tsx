@@ -10,7 +10,7 @@ import AddressModal from '@/components/address/AddressModal'
 export default function ProfilePage() {
     const [user, setUser] = useState<any>(null);
     const { addresses, loading: addressLoading, refetch } = useAddress();
-    
+
     const [modalOpen, setModalOpen] = useState(false);
     const [editingAddress, setEditingAddress] = useState<Address | null>(null);
 
@@ -88,7 +88,7 @@ export default function ProfilePage() {
             <div className="border-t border-gray-200 pt-8">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="font-semibold text-gray-900">Sổ địa chỉ</h3>
-                    <button 
+                    <button
                         onClick={handleAddAddress}
                         className="text-blue-600 text-sm hover:underline flex items-center gap-1 font-medium"
                     >
@@ -116,7 +116,7 @@ export default function ProfilePage() {
                                     <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
                                     <div>
                                         <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                                            {defaultAddress.name}
+                                            {defaultAddress.receiver_name}
                                             <span className="text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                                                 Mặc định
                                             </span>
@@ -154,7 +154,7 @@ export default function ProfilePage() {
                                     <p>{`${address.ward}, ${address.district}, ${address.province}`}</p>
                                 </div>
                                 <div className="pl-7">
-                                    <button 
+                                    <button
                                         onClick={() => handleSetDefault(address.id)}
                                         className="text-xs text-blue-600 hover:underline font-medium"
                                     >
@@ -167,11 +167,11 @@ export default function ProfilePage() {
                 )}
             </div>
 
-            <AddressModal 
-                isOpen={modalOpen} 
-                onClose={() => setModalOpen(false)} 
-                addressToEdit={editingAddress} 
-                onSuccess={() => refetch()} 
+            <AddressModal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                addressToEdit={editingAddress}
+                onSuccess={() => refetch()}
             />
         </div>
     )
