@@ -17,13 +17,14 @@ export const Header = () => {
   React.useEffect(() => {
     setMounted(true);
     const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    const isValidToken = token && token !== "null" && token !== "undefined";
+    setIsLoggedIn(!!isValidToken);
     const userStr = localStorage.getItem("user");
-    if (userStr) {
+    if (userStr && userStr !== "undefined") {
       try {
         const user = JSON.parse(userStr);
         setUserName(user.name);
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -60,13 +61,24 @@ export const Header = () => {
           setUserName(res.name);
         }
       } catch (error) {
-        console.error(error);
+        setIsLoggedIn(false);
+        setUserName(null);
       }
     }
     const token = localStorage.getItem("token");
-    if (token) {
+    if (token && token !== "null" && token !== "undefined") {
       fetchUserData();
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     }
+
+    const handleAuthExpired = () => {
+      setIsLoggedIn(false);
+      setUserName(null);
+    };
+    window.addEventListener('auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('auth-expired', handleAuthExpired);
   }, []);
   return (
     <div>
@@ -184,7 +196,6 @@ export const Header = () => {
                     onClick={() => route.push("/profile")}
                   >
                     <User className="w-4 h-4" />
-                    {userName && <span>{userName}</span>}
                   </button>
                 </>
               ) : mounted ? (

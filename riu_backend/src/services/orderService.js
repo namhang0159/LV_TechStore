@@ -1,4 +1,4 @@
-const { Order, OrderItem, Warehouse, Warranty, OrderItemSerial, SerialNumber, ProductVariant, OrderVoucher, Voucher, OrderStatusHistory, Payment, Product, ProductVariantImage, AttributeValue, Attribute, UserVoucher, Inventory, sequelize } = require("../models");
+const { Order, OrderItem, Warehouse, Warranty, OrderItemSerial, SerialNumber, ProductVariant, OrderVoucher, Voucher, OrderStatusHistory, Payment, Product, ProductVariantImage, AttributeValue, Attribute, UserVoucher, Inventory, Review, sequelize } = require("../models");
 
 const orderIncludes = [
   {
@@ -42,6 +42,10 @@ const orderIncludes = [
   },
   {
     model: Payment,
+    required: false
+  },
+  {
+    model: Review,
     required: false
   }
 ];

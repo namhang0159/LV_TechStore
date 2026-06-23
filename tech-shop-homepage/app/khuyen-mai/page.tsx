@@ -69,12 +69,23 @@ export default function PromotionsPage() {
 
     try {
       setSavingId(voucherId);
-      await saveVoucher(voucherId);
+      const res = await saveVoucher(voucherId);
+      console.log(res);
       setSavedVoucherIds((prev) => [...prev, voucherId]);
       toast({ title: "Thành công", description: "Lưu mã thành công! Bạn có thể sử dụng ở bước thanh toán." });
     } catch (error: any) {
       console.error("Error saving voucher:", error);
-      const errorMsg = error.response?.data?.message || "Lưu mã thất bại";
+      let errorMsg = error.response?.data?.message || "Lưu mã thất bại";
+      
+      // Việt hoá một số lỗi từ backend
+      if (errorMsg.includes("already saved")) {
+        errorMsg = "Bạn đã lưu mã giảm giá này rồi!";
+      } else if (errorMsg.includes("không đủ điểm")) {
+        errorMsg = "Bạn không đủ điểm thành viên để lưu mã này.";
+      } else if (errorMsg.includes("not found")) {
+        errorMsg = "Không tìm thấy mã giảm giá hoặc người dùng.";
+      }
+      
       toast({ title: "Lỗi", description: errorMsg, variant: "destructive" });
     } finally {
       setSavingId(null);

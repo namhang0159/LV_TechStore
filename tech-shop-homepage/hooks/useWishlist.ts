@@ -7,9 +7,12 @@ export const useWishlist = () => {
 
     const fetchWishlist = async () => {
         try {
-            if (typeof window !== "undefined" && !localStorage.getItem("token")) {
-                setLoading(false);
-                return;
+            if (typeof window !== "undefined") {
+                const token = localStorage.getItem("token");
+                if (!token || token === "null" || token === "undefined") {
+                    setLoading(false);
+                    return;
+                }
             }
             setLoading(true);
             const res = await getWishlist();

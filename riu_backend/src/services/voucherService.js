@@ -42,6 +42,21 @@ const getAllVouchersService = async (userId) => {
       ]
     };
 
+    const now = new Date();
+    whereClause.end_date = {
+      [db.Sequelize.Op.or]: [
+        { [db.Sequelize.Op.gte]: now },
+        { [db.Sequelize.Op.is]: null }
+      ]
+    };
+
+    whereClause.usage_limit = {
+      [db.Sequelize.Op.or]: [
+        { [db.Sequelize.Op.gt]: 0 },
+        { [db.Sequelize.Op.is]: null }
+      ]
+    };
+
     if (usedVoucherIds.length > 0) {
       whereClause.id = { [db.Sequelize.Op.notIn]: usedVoucherIds };
     }

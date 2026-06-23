@@ -213,6 +213,9 @@ db.Review.belongsTo(db.Product, { foreignKey: "product_id" });
 db.User.hasMany(db.Review, { foreignKey: "user_id" });
 db.Review.belongsTo(db.User, { foreignKey: "user_id" });
 
+db.Order.hasMany(db.Review, { foreignKey: "order_id" });
+db.Review.belongsTo(db.Order, { foreignKey: "order_id" });
+
 /// WARRANTY
 db.SerialNumber.hasMany(db.Warranty, { foreignKey: "serial_number_id" });
 db.Warranty.belongsTo(db.SerialNumber, { foreignKey: "serial_number_id" });

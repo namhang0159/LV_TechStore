@@ -39,7 +39,18 @@ axiosInstance.interceptors.response.use(
           !error.config.url?.includes("/login")
         ) {
           localStorage.removeItem("token");
-          window.location.href = "/login";
+          localStorage.removeItem("user");
+          
+          // Chỉ chuyển hướng nếu đang ở các trang yêu cầu đăng nhập
+          const protectedRoutes = ["/profile", "/cart", "/wishlist", "/checkout"];
+          const isProtectedRoute = protectedRoutes.some(route => window.location.pathname.startsWith(route));
+          
+          if (isProtectedRoute) {
+            window.location.href = "/login";
+          } else {
+             // Có thể dispatch một custom event để báo cho các component biết đã bị đăng xuất
+             window.dispatchEvent(new Event('auth-expired'));
+          }
         }
       }
     }

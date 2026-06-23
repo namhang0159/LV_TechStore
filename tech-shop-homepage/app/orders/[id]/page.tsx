@@ -7,6 +7,8 @@ import { getOrderById } from '@/util/api';
 import { useParams } from 'next/navigation';
 import { useReactToPrint } from 'react-to-print';
 import { InvoiceTemplate } from '@/components/orders/InvoiceTemplate';
+import ReviewModal from '@/components/orders/ReviewModal';
+import { Star } from 'lucide-react';
 
 const getStatusText = (status: string) => {
     switch (status) {
@@ -27,24 +29,32 @@ export default function OrderDetailPage() {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const componentRef = useRef<HTMLDivElement>(null);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [reviewProduct, setReviewProduct] = useState<{ id: number, name: string } | null>(null);
+
+    const handleOpenReview = (productId: number, productName: string) => {
+        setReviewProduct({ id: productId, name: productName });
+        setIsReviewModalOpen(true);
+    };
 
     const handlePrint = useReactToPrint({
         contentRef: componentRef,
         documentTitle: `Hoa-Don-${order?.order_code || id}`,
     });
 
-    useEffect(() => {
+    const fetchOrder = async () => {
         if (!id) return;
-        const fetchOrder = async () => {
-            try {
-                const res = await getOrderById(id);
-                setOrder(res.data);
-            } catch (error) {
-                console.error("Lỗi khi tải chi tiết đơn hàng:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        try {
+            const res = await getOrderById(id);
+            setOrder(res.data);
+        } catch (error) {
+            console.error("Lỗi khi tải chi tiết đơn hàng:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchOrder();
     }, [id]);
 
@@ -129,6 +139,30 @@ export default function OrderDetailPage() {
                                                         <span className="text-sm text-gray-500">SL: {item.quantity}</span>
                                                         <span className="text-sm font-semibold text-gray-900">{parseInt(item.price_at_purchase).toLocaleString('vi-VN')}đ</span>
                                                     </div>
+                                                    {(() => {
+                                                        if (order.order_status !== 'completed' || !item.ProductVariant?.product_id) return null;
+                                                        
+                                                        const isReviewed = order.ProductReviews?.some((r: any) => r.product_id === item.ProductVariant.product_id);
+                                                        
+                                                        if (isReviewed) {
+                                                            return (
+                                                                <span className="mt-3 inline-flex items-center text-xs font-medium text-green-600">
+                                                                    <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                                                                    Đã đánh giá
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <button
+                                                                onClick={() => handleOpenReview(item.ProductVariant.product_id, item.ProductVariant.Product?.name || item.product_name_snapshot)}
+                                                                className="mt-3 px-4 py-1.5 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors inline-flex items-center"
+                                                            >
+                                                                <Star className="w-3.5 h-3.5 mr-1.5" />
+                                                                Đánh giá sản phẩm
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         )
@@ -240,6 +274,18 @@ export default function OrderDetailPage() {
             <div className="hidden">
                 <InvoiceTemplate ref={componentRef} order={order} />
             </div>
+
+            <ReviewModal
+                isOpen={isReviewModalOpen}
+                onClose={() => setIsReviewModalOpen(false)}
+                productName={reviewProduct?.name || ''}
+                productId={reviewProduct?.id || 0}
+                orderId={order.id}
+                onSuccess={() => {
+                    setIsReviewModalOpen(false);
+                    fetchOrder();
+                }}
+            />
         </div>
     );
 }

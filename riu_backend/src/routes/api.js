@@ -78,6 +78,9 @@ router.delete("/wishlist/:productId", authMiddleware, wishlistController.removeF
 const reviewController = require("../controllers/reviewController");
 router.get("/products/:productId/reviews", reviewController.getProductReviews);
 router.post("/reviews", authMiddleware, reviewController.createReview);
+router.get("/admin/reviews", authMiddleware, adminMiddleware, reviewController.getAllReviewsAdmin);
+router.put("/admin/reviews/:id/status", authMiddleware, adminMiddleware, reviewController.updateReviewStatus);
+router.delete("/admin/reviews/:id", authMiddleware, adminMiddleware, reviewController.deleteReview);
 
 // Warehouse routes
 const warehouseController = require("../controllers/warehouseController");
@@ -164,6 +167,7 @@ router.get("/admin/me", authMiddleware, adminMiddleware, adminController.fetchAd
 
 // Customer routes (Admin)
 const customerController = require("../controllers/customerController");
+router.get("/admin/customers-clustering", authMiddleware, adminMiddleware, customerController.getCustomerClustering);
 router.get("/admin/customers", authMiddleware, adminMiddleware, customerController.getAllCustomers);
 router.get("/admin/customers/:id", authMiddleware, adminMiddleware, customerController.getCustomerById);
 router.put("/admin/customers/:id/status", authMiddleware, adminMiddleware, customerController.updateCustomerStatus);
@@ -184,5 +188,10 @@ router.delete("/admin/banners/:id", authMiddleware, adminMiddleware, bannerContr
 // Report routes
 const reportController = require("../controllers/reportController");
 router.get("/admin/reports/dashboard", authMiddleware, adminMiddleware, reportController.getDashboardReport);
+
+// AI Analysis routes
+const aiAnalysisController = require("../controllers/aiAnalysisController");
+router.get("/admin/behavioral-analysis", authMiddleware, adminMiddleware, aiAnalysisController.getBehavioralAnalysis);
+router.get("/admin/customer-analytics/ai-insights", authMiddleware, adminMiddleware, aiAnalysisController.getCustomerBehaviorAnalysis);
 
 module.exports = router;

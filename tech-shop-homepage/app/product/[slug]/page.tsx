@@ -3,6 +3,7 @@
 import ProductActionBar from "@/components/product/ProductActionBar";
 import ProductDetailsSection from "@/components/product/ProductDetailsSection";
 import ProductHighlights from "@/components/product/ProductHighlights";
+import ProductFeedbackSection from "@/components/product/ProductFeedbackSection";
 import { useProductBySlug } from "@/hooks/useProduct";
 import { useEffect, useState, use } from "react";
 
@@ -85,38 +86,7 @@ export default function ProductDetail({ params }: { params: Promise<{ slug: stri
       )}
 
       {activeTab === 'feedback' && (
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold">Đánh giá khách hàng</h2>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 transition">Viết đánh giá</button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 border-b border-gray-200 pb-10">
-            <div className="text-center md:text-left">
-              <div className="text-5xl font-bold text-gray-900 mb-2">5.0</div>
-              <div className="flex items-center justify-center md:justify-start text-yellow-400 mb-2">
-                {'★★★★★'.split('').map((star, i) => <span key={i} className="text-xl">{star}</span>)}
-              </div>
-              <p className="text-sm text-gray-500">Dựa trên 0 đánh giá</p>
-            </div>
-            <div className="md:col-span-2 space-y-3">
-              {[
-                { stars: 5, count: 0, percent: 0 },
-                { stars: 4, count: 0, percent: 0 },
-                { stars: 3, count: 0, percent: 0 },
-                { stars: 2, count: 0, percent: 0 },
-                { stars: 1, count: 0, percent: 0 },
-              ].map((row) => (
-                <div key={row.stars} className="flex items-center text-sm">
-                  <span className="w-12 text-gray-600">{row.stars} Sao</span>
-                  <div className="flex-1 mx-4 bg-gray-200 rounded-full h-2">
-                    <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${row.percent}%` }}></div>
-                  </div>
-                  <span className="w-10 text-right text-gray-500">{row.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <ProductFeedbackSection productId={product.id} />
       )}
 
       {activeTab === 'more-info' && (

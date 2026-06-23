@@ -11,6 +11,8 @@ app.use(express.json());
 app.use("/api", authRoutes);
 const paymentGatewayRoute = require("./routes/paymentGatewayRoute");
 app.use("/api/payments", paymentGatewayRoute);
+const chatRoute = require("./routes/chatRoute");
+app.use("/api/chat", chatRoute);
 app.get("/", (req, res) => {
   res.json({ message: "Hello API" });
 });

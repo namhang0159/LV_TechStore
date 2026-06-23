@@ -135,3 +135,21 @@ export const getInventoryTransactionById = async (id: number) => {
 export const getAvailableSerials = async (variantId: number, warehouseId: number) => {
     return await axios.get(`/api/admin/inventory/serials?variant_id=${variantId}&warehouse_id=${warehouseId}`);
 }
+export const getAllReviews = async () => {
+    return await axios.get(`/api/admin/reviews`);
+}
+export const updateReviewStatus = async (id: number, status: string) => {
+    return await axios.put(`/api/admin/reviews/${id}/status`, { status });
+}
+export const deleteReview = async (id: number) => {
+    return await axios.delete(`/api/admin/reviews/${id}`);
+}
+export const getAllBehavioralAnalysis = async () => {
+    return await axios.get(`/api/admin/behavioral-analysis`);
+}
+export const getCustomerClustering = async () => {
+    return await axios.get(`/api/admin/customers-clustering`);
+}
+export const getCustomerBehaviorAnalysisAI = async () => {
+    return await axios.get(`/api/admin/customer-analytics/ai-insights`);
+}

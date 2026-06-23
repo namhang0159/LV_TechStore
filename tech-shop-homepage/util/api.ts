@@ -126,3 +126,18 @@ export const removeFromWishlist = async (productId: number) => {
     const res = await axios.delete(`/wishlist/${productId}`);
     return res.data;
 };
+
+export const sendMessageToAI = async (history: any[], message: string) => {
+    const res = await axios.post(`/chat`, { history, message });
+    return res.data;
+};
+
+export const getProductReviews = async (productId: number) => {
+    const res = await axios.get(`/products/${productId}/reviews`);
+    return res.data;
+};
+
+export const createReview = async (productId: number, orderId: number, rating: number, comment: string) => {
+    const res = await axios.post(`/reviews`, { product_id: productId, order_id: orderId, rating, comment });
+    return res.data;
+};

@@ -18,7 +18,7 @@ const getAllVouchers = async (req, res) => {
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
       try {
-        const decoded = jwt.verify(token, "SECRET_KEY");
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "admin_secret");
         userId = decoded.id;
       } catch (err) {
         // ignore invalid token for this optional check
