@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 
 
 // Hook để lấy danh sách tất cả sản phẩm
-export const useProduct = () => {
+export const useProduct = (page = 1, limit = 10) => {
   const [products, setProducts] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,8 +13,9 @@ export const useProduct = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const res = await getAllProduct();
+        const res = await getAllProduct(page, limit);
         setProducts(res.data || []);
+        setPagination(res.pagination || null);
       } catch (err: any) {
         setError(err.message || "Failed to fetch products");
       } finally {
@@ -21,9 +23,9 @@ export const useProduct = () => {
       }
     };
     fetchProducts();
-  }, []);
+  }, [page, limit]);
 
-  return { products, loading, error };
+  return { products, pagination, loading, error };
 };
 
 // Hook để lấy chi tiết 1 sản phẩm theo slug

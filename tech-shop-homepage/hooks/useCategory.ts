@@ -2,8 +2,9 @@ import { getAllCategory, getCategoryBySlug } from "@/util/api";
 import { useState, useEffect } from "react";
 
 // Hook để lấy danh sách tất cả danh mục
-export const useCategory = () => {
+export const useCategory = (page = 1, limit = 10) => {
   const [categories, setCategories] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -11,8 +12,9 @@ export const useCategory = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const res = await getAllCategory();
+        const res = await getAllCategory(page, limit);
         setCategories(res.data || []);
+        setPagination(res.pagination || null);
       } catch (err: any) {
         setError(err.message || "Failed to fetch categories");
       } finally {
@@ -20,9 +22,9 @@ export const useCategory = () => {
       }
     };
     fetchCategories();
-  }, []);
+  }, [page, limit]);
 
-  return { categories, loading, error };
+  return { categories, pagination, loading, error };
 };
 
 // Hook để lấy chi tiết 1 danh mục theo slug (kèm theo danh sách sản phẩm)

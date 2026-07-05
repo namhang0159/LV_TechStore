@@ -13,7 +13,9 @@ module.exports = (sequelize, DataTypes) => {
       password: DataTypes.STRING,
       birth_date: DataTypes.DATE,
       role: DataTypes.ENUM("admin", "staff"),
+      position: DataTypes.STRING,
       created_at: DataTypes.DATE,
+      refresh_token: DataTypes.STRING,
     },
     {
       timestamps: false,

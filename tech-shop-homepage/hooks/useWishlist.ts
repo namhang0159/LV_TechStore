@@ -14,6 +14,10 @@ export const useWishlist = () => {
                     return;
                 }
             }
+            if (!localStorage.getItem("token")) {
+                setLoading(false);
+                return;
+            }
             setLoading(true);
             const res = await getWishlist();
             if (res.data) {

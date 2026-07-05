@@ -16,16 +16,16 @@ import { useWishlist } from "@/hooks/useWishlist";
 import Link from "next/link";
 import { FeaturesSection } from "@/components/common/FeaturesSection";
 
-const banner = [
+const DEFAULT_BANNERS = [
   {
-    title: "RIU - Tech Store",
-    description: "Your one-stop shop for the latest tech products",
-    image: "fake_banner.png",
+    id: 'default_1',
+    link: "#",
+    image_url: "/fake_banner.png",
   },
   {
-    title: "Special Offers",
-    description: "Don't miss out on our limited-time deals",
-    image: "fake_banner2.png",
+    id: 'default_2',
+    link: "#",
+    image_url: "/fake_banner2.png",
   },
 ];
 
@@ -118,22 +118,29 @@ export default function Home() {
   const { categories, loading: loadingCat } = useCategory();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [blogs, setBlogs] = useState<any[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchBlogs = async () => {
+    const fetchData = async () => {
       try {
-        const { getAllBlog } = await import('@/util/api');
-        const res = await getAllBlog();
-        if (res.data) {
-          const published = res.data.filter((b: any) => b.status === "published");
+        const { getAllBlog, getActiveBanners } = await import('@/util/api');
+        
+        const resBlog = await getAllBlog();
+        if (resBlog.data) {
+          const published = resBlog.data.filter((b: any) => b.status === "published");
           published.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
           setBlogs(published.slice(0, 4));
+        }
+
+        const resBanner = await getActiveBanners();
+        if (resBanner.success && resBanner.data) {
+          setBanners(resBanner.data);
         }
       } catch (err) {
         console.error(err);
       }
     };
-    fetchBlogs();
+    fetchData();
   }, []);
 
   if (loadingProd || loadingCat) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Đang tải dữ liệu...</p></div>;
@@ -173,15 +180,12 @@ export default function Home() {
             )
           }
         >
-          {banner.map((item) => (
-            <div key={item.title} className="max-w-7xl mx-auto">
-              <Image
-                src={`/${item.image}`}
-                alt={item.title}
-                width={1800}
-                height={400}
-                className="object-cover rounded"
-                priority={true}
+          {(banners.length > 0 ? banners : DEFAULT_BANNERS).map((item) => (
+            <div key={item.id} className="max-w-7xl mx-auto cursor-pointer" onClick={() => item.link && item.link !== '#' ? route.push(item.link) : null}>
+              <img
+                src={item.image_url.startsWith('http') ? item.image_url : (item.image_url.startsWith('/') ? item.image_url : `/${item.image_url}`)}
+                alt="Banner"
+                className="w-full h-auto max-h-[400px] object-cover rounded"
               />
             </div>
           ))}

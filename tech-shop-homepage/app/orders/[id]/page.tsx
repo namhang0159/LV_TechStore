@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { ChevronLeft, Package, Truck, CheckCircle, CreditCard, MapPin, Download } from 'lucide-react';
+import { ChevronLeft, Package, Truck, CheckCircle, CreditCard, MapPin, Download, Clock, FileText, XCircle, ArrowLeftRight } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { getOrderById } from '@/util/api';
 import { useParams } from 'next/navigation';
@@ -15,7 +15,7 @@ const getStatusText = (status: string) => {
         case 'pending': return 'Chờ xác nhận';
         case 'confirmed': return 'Đã xác nhận';
         case 'shipping': return 'Đang giao hàng';
-        case 'delivered': return 'Đã giao hàng';
+        case 'completed': return 'Đã giao hàng';
         case 'completed': return 'Hoàn thành';
         case 'cancel': return 'Đã hủy';
         case 'returned': return 'Đã trả hàng';
@@ -71,6 +71,37 @@ export default function OrderDetailPage() {
     try {
         shippingAddress = JSON.parse(order.shipping_address_json || '{}');
     } catch (e) { }
+
+    // Format date time helper
+    const formatDateTime = (dateString: string) => {
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        return d.toLocaleDateString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    // Safely get history log and sort by created_at descending
+    const rawHistories = order.order_status_histories || order.OrderStatusHistories || [];
+    const historyLogs = [...rawHistories].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Helper icon/color for status
+    const getStatusIcon = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'pending': return <Clock className="w-3.5 h-3.5 text-orange-500" />;
+            case 'confirmed': return <CheckCircle className="w-3.5 h-3.5 text-blue-500" />;
+            case 'shipping': return <Truck className="w-3.5 h-3.5 text-blue-600" />;
+            case 'completed':
+            case 'delivered': return <Package className="w-3.5 h-3.5 text-green-500" />;
+            case 'cancel': return <XCircle className="w-3.5 h-3.5 text-red-500" />;
+            case 'returned': return <ArrowLeftRight className="w-3.5 h-3.5 text-yellow-600" />;
+            default: return <FileText className="w-3.5 h-3.5 text-gray-500" />;
+        }
+    };
 
     const subtotalStr = parseInt(order.total_base_price).toLocaleString('vi-VN') + 'đ';
     const shippingFeeStr = parseInt(order.shipping_fee).toLocaleString('vi-VN') + 'đ';
@@ -141,9 +172,9 @@ export default function OrderDetailPage() {
                                                     </div>
                                                     {(() => {
                                                         if (order.order_status !== 'completed' || !item.ProductVariant?.product_id) return null;
-                                                        
+
                                                         const isReviewed = order.ProductReviews?.some((r: any) => r.product_id === item.ProductVariant.product_id);
-                                                        
+
                                                         if (isReviewed) {
                                                             return (
                                                                 <span className="mt-3 inline-flex items-center text-xs font-medium text-green-600">
@@ -236,35 +267,73 @@ export default function OrderDetailPage() {
                         {/* Order Timeline (Optional extra feature) */}
                         <div className="mt-10 pt-8 border-t border-gray-100 print:hidden">
                             <h2 className="text-lg font-semibold text-gray-900 mb-6">Trạng thái đơn hàng</h2>
-                            <div className="flex items-center justify-between relative">
+                            <div className="flex items-center justify-between relative mb-12">
                                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 z-0"></div>
-                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-600 z-0 ${order.order_status === 'pending' ? 'w-1/4' : order.order_status === 'processing' ? 'w-2/4' : order.order_status === 'shipping' ? 'w-3/4' : order.order_status === 'delivered' ? 'w-full' : 'w-0'}`}></div>
+                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-600 z-0 ${order.order_status === 'pending' ? 'w-1/4' : order.order_status === 'confirmed' ? 'w-2/4' : order.order_status === 'shipping' ? 'w-3/4' : order.order_status === 'completed' ? 'w-full' : 'w-0'}`}></div>
 
                                 <div className="relative z-10 flex flex-col items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${['pending', 'processing', 'shipping', 'delivered'].includes(order.order_status) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${['pending', 'confirmed', 'shipping', 'completed'].includes(order.order_status) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
                                         <CheckCircle className="w-4 h-4" />
                                     </div>
-                                    <span className={`text-xs font-medium ${['pending', 'processing', 'shipping', 'delivered'].includes(order.order_status) ? 'text-gray-900' : 'text-gray-500'}`}>Chờ xác nhận</span>
+                                    <span className={`text-xs font-medium ${['pending', 'confirmed', 'shipping', 'completed'].includes(order.order_status) ? 'text-gray-900' : 'text-gray-500'}`}>Chờ xác nhận</span>
                                 </div>
                                 <div className="relative z-10 flex flex-col items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${['processing', 'shipping', 'delivered'].includes(order.order_status) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${['confirmed', 'shipping', 'completed'].includes(order.order_status) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
                                         <CheckCircle className="w-4 h-4" />
                                     </div>
-                                    <span className={`text-xs font-medium ${['processing', 'shipping', 'delivered'].includes(order.order_status) ? 'text-gray-900' : 'text-gray-500'}`}>Đang xử lý</span>
+                                    <span className={`text-xs font-medium ${['confirmed', 'shipping', 'completed'].includes(order.order_status) ? 'text-gray-900' : 'text-gray-500'}`}>Đang xử lý</span>
                                 </div>
                                 <div className="relative z-10 flex flex-col items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${['shipping', 'delivered'].includes(order.order_status) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${['shipping', 'completed'].includes(order.order_status) ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
                                         <Truck className="w-4 h-4" />
                                     </div>
-                                    <span className={`text-xs font-medium ${['shipping', 'delivered'].includes(order.order_status) ? 'text-blue-600' : 'text-gray-500'}`}>Đang giao hàng</span>
+                                    <span className={`text-xs font-medium ${['shipping', 'completed'].includes(order.order_status) ? 'text-blue-600' : 'text-gray-500'}`}>Đang giao hàng</span>
                                 </div>
                                 <div className="relative z-10 flex flex-col items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${order.order_status === 'delivered' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${order.order_status === 'completed' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
                                         <Package className="w-4 h-4" />
                                     </div>
-                                    <span className={`text-xs font-medium ${order.order_status === 'delivered' ? 'text-gray-900' : 'text-gray-500'}`}>Đã nhận hàng</span>
+                                    <span className={`text-xs font-medium ${order.order_status === 'completed' ? 'text-gray-900' : 'text-gray-500'}`}>Đã nhận hàng</span>
                                 </div>
                             </div>
+
+                            {/* Order Status History Log */}
+                            {historyLogs && historyLogs.length > 0 && (
+                                <div className="mt-8 border border-gray-100 rounded-xl bg-gray-50/50 p-6">
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-6 flex items-center">
+                                        <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                                        Lịch sử cập nhật
+                                    </h3>
+                                    <div className="relative pl-5 space-y-6">
+                                        {/* Vertical line */}
+                                        <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-gray-200"></div>
+
+                                        {historyLogs.map((log: any, index: number) => (
+                                            <div key={log.id || index} className="relative flex items-start gap-4">
+                                                {/* Bullet Point */}
+                                                <div className="absolute -left-8 top-1 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center z-10 shadow-sm">
+                                                    {getStatusIcon(log.status)}
+                                                </div>
+                                                
+                                                <div className="flex-1 bg-white p-4 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md hover:border-gray-200">
+                                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
+                                                        <span className="font-semibold text-sm text-gray-900">
+                                                            {getStatusText(log.status)}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md font-medium flex items-center">
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            {formatDateTime(log.created_at)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600 leading-relaxed">
+                                                        {log.note || 'Không có ghi chú'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

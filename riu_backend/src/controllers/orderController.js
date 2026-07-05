@@ -1,4 +1,4 @@
-const { getAllOrdersService, getOrderByIdService, createOrderService, getMyOrdersService, getOrderByCodeService, updateOrderStatusService } = require("../services/orderService");
+const { getAllOrdersService, getOrderByIdService, createOrderService, getMyOrdersService, getOrderByCodeService, updateOrderStatusService, createDirectOrderService } = require("../services/orderService");
 
 const getAllOrders = async (req, res) => {
   try {
@@ -86,11 +86,24 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+const createDirectOrder = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const result = await createDirectOrderService(adminId, req.body, req);
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllOrders,
   getOrderById,
   getMyOrders,
   createOrder,
   getOrderByCode,
-  updateOrderStatus
+  updateOrderStatus,
+  createDirectOrder
 };

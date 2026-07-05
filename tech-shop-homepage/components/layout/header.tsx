@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Input } from "../ui/input";
-import { Heart, Search, ShoppingCart, User, ChevronDown, Ticket } from "lucide-react";
+import { Heart, Search, ShoppingCart, User, ChevronDown, Ticket, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCategory } from "@/hooks/useCategory";
 
@@ -200,6 +200,13 @@ export const Header = () => {
                 </>
               ) : mounted ? (
                 <>
+                  <button
+                    className="flex items-center gap-1 text-sm hover:text-primary"
+                    onClick={() => route.push("/warranty-check")}
+                    title="Tra cứu bảo hành"
+                  >
+                    <ShieldCheck className="w-5 h-5 text-blue-500" />
+                  </button>
                   <button
                     className="flex items-center gap-1 text-sm hover:text-primary"
                     onClick={() => route.push("/khuyen-mai")}

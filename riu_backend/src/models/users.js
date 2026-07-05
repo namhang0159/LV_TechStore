@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       created_at: DataTypes.DATE,
       status: DataTypes.STRING,
       last_login_at: DataTypes.DATE,
+      refresh_token: DataTypes.STRING,
     },
     {
       tableName: "users",

@@ -20,9 +20,13 @@ const {
   sequelize,
 } = require("../models");
 
-const getAllProductsService = async () => {
+const getAllProductsService = async (page = 1, limit = 10) => {
   try {
-    const products = await Product.findAll({
+    const offset = (page - 1) * limit;
+    const { count, rows: products } = await Product.findAndCountAll({
+      distinct: true,
+      limit,
+      offset,
       attributes: [
         "id",
         "name",
@@ -98,12 +102,23 @@ const getAllProductsService = async () => {
           ],
         },
       ],
-      order: [["id", "ASC"]],
+      order: [
+        ["id", "ASC"],
+        [ProductDescription, "id", "ASC"],
+        [ProductSpec, "sort_order", "ASC"],
+        [ProductVariant, "id", "ASC"]
+      ],
     });
 
     return {
       message: "Products retrieved successfully",
       data: products,
+      pagination: {
+        totalItems: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        limit
+      }
     };
   } catch (error) {
     throw error;
@@ -188,6 +203,11 @@ const getProductByIdService = async (id) => {
           ],
         },
       ],
+      order: [
+        [ProductDescription, "id", "ASC"],
+        [ProductSpec, "sort_order", "ASC"],
+        [ProductVariant, "id", "ASC"]
+      ],
     });
 
     if (!product) {
@@ -265,6 +285,11 @@ const getProductBySlugService = async (slug) => {
             },
           ],
         },
+      ],
+      order: [
+        [ProductDescription, "id", "ASC"],
+        [ProductSpec, "sort_order", "ASC"],
+        [ProductVariant, "id", "ASC"]
       ],
     });
 
@@ -373,9 +398,76 @@ const updateProductService = async (id, data) => {
 
     await product.update(data, { transaction: t });
 
-    // Note: To fully implement update with nested relations (variants, specs, etc.)
-    // you would typically wipe existing ones and recreate them, or do precise differential updates.
-    // Assuming partial update for now or recreate logic if data arrays are provided:
+    // Wipe and recreate descriptions
+    if (data.descriptions !== undefined) {
+      await ProductDescription.destroy({ where: { product_id: id }, transaction: t });
+      if (data.descriptions.length > 0) {
+        const descriptions = data.descriptions.map((desc) => ({
+          product_id: id,
+          type: desc.type,
+          data_json: desc.data_json,
+        }));
+        await ProductDescription.bulkCreate(descriptions, { transaction: t });
+      }
+    }
+
+    // Wipe and recreate specs
+    if (data.specs !== undefined) {
+      await ProductSpec.destroy({ where: { product_id: id }, transaction: t });
+      if (data.specs.length > 0) {
+        const specs = data.specs.map((spec) => ({
+          product_id: id,
+          group_name: spec.group_name,
+          label: spec.label,
+          value: spec.value,
+          sort_order: spec.sort_order || 0,
+        }));
+        await ProductSpec.bulkCreate(specs, { transaction: t });
+      }
+    }
+
+    // Update variants
+    if (data.variants !== undefined) {
+      // For simplicity, we update existing variants or create new ones.
+      // We don't delete missing ones here to prevent breaking orders/inventory.
+      for (const variant of data.variants) {
+        let currentVariant;
+        if (variant.id) {
+          currentVariant = await ProductVariant.findByPk(variant.id, { transaction: t });
+          if (currentVariant) {
+            await currentVariant.update({
+              price: variant.price,
+              sku: variant.sku,
+              status: variant.status || "active",
+            }, { transaction: t });
+          }
+        }
+        
+        if (!currentVariant) {
+          currentVariant = await ProductVariant.create({
+            product_id: id,
+            price: variant.price,
+            sku: variant.sku,
+            status: variant.status || "active",
+          }, { transaction: t });
+        }
+
+        if (variant.images !== undefined) {
+          await ProductVariantImage.destroy({ where: { variant_id: currentVariant.id }, transaction: t });
+          if (variant.images.length > 0) {
+            const images = variant.images.map((imgUrl) => ({
+              variant_id: currentVariant.id,
+              image_url: imgUrl,
+            }));
+            await ProductVariantImage.bulkCreate(images, { transaction: t });
+          }
+        }
+
+        if (variant.attributes !== undefined) {
+          await currentVariant.setAttributeValues(variant.attributes, { transaction: t });
+        }
+      }
+    }
 
     if (data.tags) {
       await product.setTags(data.tags, { transaction: t });

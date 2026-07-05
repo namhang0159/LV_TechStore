@@ -62,12 +62,19 @@ const loginService = async (data) => {
     );
   }
   const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "admin_secret", {
-    expiresIn: "1d",
+    expiresIn: "1h",
   });
+  
+  const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET || "refresh_secret", {
+    expiresIn: "7d",
+  });
+  
+  await user.update({ refresh_token: refreshToken });
 
   return {
     message: "Login success",
     token,
+    refreshToken,
     user,
   };
 };
@@ -79,8 +86,35 @@ const fetchMeService = async (id) => {
   return user;
 };
 
+const refreshTokenService = async (refreshToken) => {
+  if (!refreshToken) {
+    throw new Error("Refresh token is required");
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || "refresh_secret");
+    const user = await User.findByPk(decoded.id);
+
+    if (!user || user.refresh_token !== refreshToken) {
+      throw new Error("Invalid refresh token");
+    }
+
+    const newAccessToken = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || "admin_secret", {
+      expiresIn: "1h",
+    });
+
+    return {
+      message: "Token refreshed successfully",
+      token: newAccessToken,
+    };
+  } catch (error) {
+    throw new Error("Invalid or expired refresh token");
+  }
+};
+
 module.exports = {
   registerService,
   loginService,
   fetchMeService,
+  refreshTokenService,
 };

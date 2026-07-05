@@ -28,6 +28,7 @@ db.ProductSpec = require("./product_specs")(sequelize, Sequelize);
 
 db.Attribute = require("./attributes")(sequelize, Sequelize);
 db.AttributeValue = require("./attribute_values")(sequelize, Sequelize);
+db.AiAnalysis = require("./ai_analyses")(sequelize, Sequelize);
 
 db.Inventory = require("./inventory")(sequelize, Sequelize);
 db.Warehouse = require("./warehouses")(sequelize, Sequelize);

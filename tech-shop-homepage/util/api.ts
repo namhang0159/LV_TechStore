@@ -12,8 +12,8 @@ export const fetchMe = async () => {
     const res = await axios.get(`/me`);
     return res.data;
 };
-export const getAllProduct = async () => {
-    const res = await axios.get(`/products`);
+export const getAllProduct = async (page = 1, limit = 10) => {
+    const res = await axios.get(`/products?page=${page}&limit=${limit}`);
     return res.data;
 };
 export const getProductBySlug = async (slug: string) => {
@@ -21,8 +21,8 @@ export const getProductBySlug = async (slug: string) => {
     return res.data;
 };
 
-export const getAllCategory = async () => {
-    const res = await axios.get(`/categories`);
+export const getAllCategory = async (page = 1, limit = 10) => {
+    const res = await axios.get(`/categories?page=${page}&limit=${limit}`);
     return res.data;
 };
 export const getCategoryBySlug = async (slug: string) => {
@@ -139,5 +139,15 @@ export const getProductReviews = async (productId: number) => {
 
 export const createReview = async (productId: number, orderId: number, rating: number, comment: string) => {
     const res = await axios.post(`/reviews`, { product_id: productId, order_id: orderId, rating, comment });
+    return res.data;
+};
+
+export const getActiveBanners = async () => {
+    const res = await axios.get(`/banners`);
+    return res.data;
+};
+
+export const lookupWarrantyBySerialNumber = async (serialNumber: string) => {
+    const res = await axios.get(`/warranties/lookup/${serialNumber}`);
     return res.data;
 };

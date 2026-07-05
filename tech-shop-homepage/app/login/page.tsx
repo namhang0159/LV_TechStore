@@ -20,10 +20,14 @@ export default function LoginPage() {
       const res = await login(email, password);
 
       const token = res.token || res.data?.token;
+      const refreshToken = res.refreshToken || res.data?.refreshToken;
       const user = res.user || res.data?.user || res.data;
 
       if (token) {
         localStorage.setItem("token", token);
+        if (refreshToken) {
+          localStorage.setItem("refreshToken", refreshToken);
+        }
         if (user) {
           localStorage.setItem("user", JSON.stringify(user));
         }

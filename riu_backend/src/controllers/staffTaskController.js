@@ -22,8 +22,26 @@ const getStaffTasks = async (req, res) => {
 const updateTaskStatus = async (req, res) => {
   try {
     const staffId = req.user.id;
-    const { status } = req.body;
-    const result = await staffTaskService.updateTaskStatusService(req.params.id, staffId, status);
+    const { status, payment_status } = req.body;
+    const result = await staffTaskService.updateTaskStatusService(req.params.id, staffId, status, payment_status);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const getAllTasksAdmin = async (req, res) => {
+  try {
+    const result = await staffTaskService.getAllStaffTasksAdminService();
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const deleteTask = async (req, res) => {
+  try {
+    const result = await staffTaskService.deleteTaskService(req.params.id);
     return res.status(200).json(result);
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
@@ -34,4 +52,6 @@ module.exports = {
   assignTask,
   getStaffTasks,
   updateTaskStatus,
+  getAllTasksAdmin,
+  deleteTask,
 };

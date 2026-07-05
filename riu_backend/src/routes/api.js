@@ -1,7 +1,7 @@
 const express = require("express");
-const { register, login, fetchMe } = require("../controllers/userControllers");
+const { register, login, fetchMe, refreshToken } = require("../controllers/userControllers");
 
-const { getAllOrders, getOrderById, createOrder, getMyOrders, getOrderByCode, updateOrderStatus } = require("../controllers/orderController");
+const { getAllOrders, getOrderById, createOrder, getMyOrders, getOrderByCode, updateOrderStatus, createDirectOrder } = require("../controllers/orderController");
 const { getAllBlogs, getBlogById, createBlog, updateBlog, deleteBlog } = require("../controllers/blogController");
 const { getAllAuthors, createAuthor } = require("../controllers/authorController");
 const { createCategory, getAllCategories, getCategoryById, updateCategory, deleteCategory, getCategoryBySlug } = require("../controllers/categoryController");
@@ -44,6 +44,7 @@ router.delete("/tags/:id", tagController.deleteTag);
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/refresh-token", refreshToken);
 router.get("/me", authMiddleware, fetchMe);
 // User Address routes
 const userAddressController = require("../controllers/userAddressController");
@@ -113,6 +114,7 @@ router.get("/admin/orders/code/:code", authMiddleware, adminMiddleware, getOrder
 router.get("/admin/orders", authMiddleware, adminMiddleware, getAllOrders);
 router.get("/admin/orders/:id", authMiddleware, adminMiddleware, getOrderById);
 router.put("/admin/orders/:id/status", authMiddleware, adminMiddleware, updateOrderStatus);
+router.post("/admin/orders/direct", authMiddleware, adminMiddleware, createDirectOrder);
 // router.delete("/admin/orders/:id", authMiddleware, adminMiddleware, deleteOrder);
 // Shipping routes
 const shippingController = require("../controllers/shippingController");
@@ -145,6 +147,8 @@ router.get("/admin/vouchers/:id", authMiddleware, adminMiddleware, voucherContro
 const warrantyController = require("../controllers/warrantyController");
 router.post("/warranties/activate", warrantyController.activateWarranty);
 router.get("/warranties/my-warranties", authMiddleware, warrantyController.getUserWarranties);
+router.get("/admin/warranties", authMiddleware, adminMiddleware, warrantyController.getAllWarrantiesAdmin);
+router.get("/warranties/lookup/:serial_number", warrantyController.lookupWarrantyBySerialNumber);
 
 // Blog routes
 router.get("/blogs", getAllBlogs);
@@ -161,8 +165,11 @@ router.post("/authors", createAuthor);
 const adminController = require("../controllers/adminController");
 
 router.post("/admin/login", adminController.loginAdmin);
+router.post("/admin/refresh-token", adminController.refreshTokenAdmin);
 router.post("/admin/users", authMiddleware, adminMiddleware, adminController.createAdmin); // authMiddleware can be an admin check
 router.get("/admin/users", authMiddleware, adminMiddleware, adminController.getAllAdmins);
+router.put("/admin/users/:id", authMiddleware, adminMiddleware, adminController.updateAdmin);
+router.delete("/admin/users/:id", authMiddleware, adminMiddleware, adminController.deleteAdmin);
 router.get("/admin/me", authMiddleware, adminMiddleware, adminController.fetchAdmin);
 
 // Customer routes (Admin)
@@ -177,6 +184,9 @@ const staffTaskController = require("../controllers/staffTaskController");
 router.post("/staff/tasks", authMiddleware, staffTaskController.assignTask);
 router.get("/staff/tasks", authMiddleware, staffTaskController.getStaffTasks);
 router.put("/staff/tasks/:id/status", authMiddleware, staffTaskController.updateTaskStatus);
+router.get("/admin/staff-tasks", authMiddleware, adminMiddleware, staffTaskController.getAllTasksAdmin);
+router.delete("/admin/staff-tasks/:id", authMiddleware, adminMiddleware, staffTaskController.deleteTask);
+
 
 // Banner routes
 const bannerController = require("../controllers/bannerController");

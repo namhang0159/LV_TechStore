@@ -1,4 +1,4 @@
-const { registerService, loginService, fetchMeService } = require("../services/userServices");
+const { registerService, loginService, fetchMeService, refreshTokenService } = require("../services/userServices");
 
 const register = async (req, res) => {
   try {
@@ -31,8 +31,22 @@ const fetchMe = async (req, res) => {
     });
   }
 };
+
+const refreshToken = async (req, res) => {
+  try {
+    const token = req.body.refreshToken;
+    const result = await refreshTokenService(token);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(401).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   fetchMe,
+  refreshToken,
 };

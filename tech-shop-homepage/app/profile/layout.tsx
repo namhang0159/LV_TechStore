@@ -22,6 +22,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
         { id: '/profile/wishlist', label: 'Danh sách mong muốn của tôi', icon: '⭐' },
         { id: '/profile/reviews', label: 'Đánh giá sản phẩm của tôi', icon: '💬' },
         { id: '/profile/newsletter', label: 'Đăng ký nhận bản tin', icon: '📧' },
+        { id: '/profile/warranty-check', label: 'Kiểm tra bảo hành', icon: '🔧' },
     ]
 
     const [user, setUser] = useState<any>(null);

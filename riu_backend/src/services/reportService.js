@@ -203,6 +203,33 @@ const getDashboardReportService = async () => {
         }
     } catch (err) {}
 
+    // 9. Last 7 Days Orders & Sales
+    const last7DaysLabels = [];
+    const ordersOverTime = [];
+    const last7DaysSalesArr = [];
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = moment().subtract(i, 'days');
+        const startOfDay = d.startOf('day').toDate();
+        const endOfDay = d.endOf('day').toDate();
+        last7DaysLabels.push(d.format('DD/MM'));
+
+        const dailyOrders = await Order.count({
+            where: {
+                created_at: { [Op.between]: [startOfDay, endOfDay] }
+            }
+        });
+        ordersOverTime.push(dailyOrders);
+
+        const dailyRevenue = await Order.sum('final_amount', {
+            where: {
+                order_status: 'Completed',
+                created_at: { [Op.between]: [startOfDay, endOfDay] }
+            }
+        });
+        last7DaysSalesArr.push(dailyRevenue || 0);
+    }
+
     return {
       success: true,
       data: {
@@ -210,7 +237,9 @@ const getDashboardReportService = async () => {
           existingUsers: { value: totalUsers, growth: 0 }, 
           newUsers: { value: newUsersThisMonth, growth: userGrowth.toFixed(2) },
           totalVisits: { value: 0, growth: 0 }, // No tracking data
-          uniqueVisits: { value: 0, growth: 0 } // No tracking data
+          uniqueVisits: { value: 0, growth: 0 }, // No tracking data
+          revenue: { value: soldFor, growth: revenuePrevMonthResult ? (((soldFor - revenuePrevMonthResult) / revenuePrevMonthResult) * 100).toFixed(2) : 100 },
+          orders: { value: ordersThisMonth, growth: ordersPrevMonth ? (((ordersThisMonth - ordersPrevMonth) / ordersPrevMonth) * 100).toFixed(2) : 100 }
         },
         salesGoal: {
           soldFor: soldFor,
@@ -231,6 +260,9 @@ const getDashboardReportService = async () => {
         },
         customerDemographics: customerDemographics,
         ageDistribution: ageDistribution,
+        ordersOverTime: ordersOverTime,
+        last7DaysSales: last7DaysSalesArr,
+        last7DaysLabels: last7DaysLabels,
         
         // Return zeros/empty for things we physically cannot track without GA/events
         conversionRate: { cart: 0, checkout: 0, purchase: 0 },

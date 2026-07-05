@@ -18,7 +18,9 @@ const createCategory = async (req, res) => {
 
 const getAllCategories = async (req, res) => {
   try {
-    const result = await getAllCategoriesService();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const result = await getAllCategoriesService(page, limit);
     return res.status(200).json(result);
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });

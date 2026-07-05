@@ -20,7 +20,31 @@ const getUserWarranties = async (req, res) => {
   }
 };
 
+const getAllWarrantiesAdmin = async (req, res) => {
+  try {
+    const result = await warrantyService.getAllWarrantiesAdminService();
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const lookupWarrantyBySerialNumber = async (req, res) => {
+  try {
+    const { serial_number } = req.params;
+    const result = await warrantyService.lookupWarrantyBySerialNumberService(serial_number);
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   activateWarranty,
   getUserWarranties,
+  getAllWarrantiesAdmin,
+  lookupWarrantyBySerialNumber
 };

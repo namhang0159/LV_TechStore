@@ -19,9 +19,13 @@ const createCategoryService = async (data) => {
   }
 };
 
-const getAllCategoriesService = async () => {
+const getAllCategoriesService = async (page = 1, limit = 10) => {
   try {
-    const categories = await db.Category.findAll({
+    const offset = (page - 1) * limit;
+    const { count, rows: categories } = await db.Category.findAndCountAll({
+      distinct: true,
+      limit,
+      offset,
       include: [
         {
           model: db.Product,
@@ -51,6 +55,12 @@ const getAllCategoriesService = async () => {
     return {
       success: true,
       data: categories,
+      pagination: {
+        totalItems: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        limit
+      }
     };
   } catch (error) {
     throw new Error("Error fetching categories: " + error.message);

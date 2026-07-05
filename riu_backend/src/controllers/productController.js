@@ -2,7 +2,9 @@ const { getAllProductsService, getProductByIdService, createProductService, upda
 
 const getAllProducts = async (req, res) => {
   try {
-    const result = await getAllProductsService();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const result = await getAllProductsService(page, limit);
     return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({

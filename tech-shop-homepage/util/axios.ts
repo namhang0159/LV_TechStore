@@ -29,27 +29,42 @@ axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Xử lý khi token hết hạn hoặc không hợp lệ
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
       if (typeof window !== "undefined") {
-        // Không redirect nếu đang ở trang login hoặc gọi api login
         if (
           window.location.pathname !== "/login" &&
-          !error.config.url?.includes("/login")
+          !originalRequest.url?.includes("/login") && 
+          !originalRequest.url?.includes("/refresh-token")
         ) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          
-          // Chỉ chuyển hướng nếu đang ở các trang yêu cầu đăng nhập
-          const protectedRoutes = ["/profile", "/cart", "/wishlist", "/checkout"];
-          const isProtectedRoute = protectedRoutes.some(route => window.location.pathname.startsWith(route));
-          
-          if (isProtectedRoute) {
-            window.location.href = "/login";
-          } else {
-             // Có thể dispatch một custom event để báo cho các component biết đã bị đăng xuất
-             window.dispatchEvent(new Event('auth-expired'));
+          originalRequest._retry = true;
+          try {
+            const refreshToken = localStorage.getItem("refreshToken");
+            if (!refreshToken) throw new Error("No refresh token");
+
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/refresh-token`, { refreshToken });
+            const newAccessToken = res.data.token || res.data.accessToken; // Tùy backend trả về key nào
+
+            if (newAccessToken) {
+              localStorage.setItem("token", newAccessToken);
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              return axiosInstance(originalRequest);
+            }
+          } catch (refreshError) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("user");
+            
+            const protectedRoutes = ["/profile", "/cart", "/wishlist", "/checkout"];
+            const isProtectedRoute = protectedRoutes.some(route => window.location.pathname.startsWith(route));
+            
+            if (isProtectedRoute) {
+              window.location.href = "/login";
+            } else {
+               window.dispatchEvent(new Event('auth-expired'));
+            }
           }
         }
       }
