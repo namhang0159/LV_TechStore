@@ -126,8 +126,8 @@ export function AdminLogin() {
         {/* Demo Credentials Info */}
         <div className="mt-6 rounded bg-gray-50 px-4 py-3 text-xs text-gray-600 border border-gray-200">
           <p className="font-semibold text-gray-700 mb-1">Demo Credentials:</p>
-          <p>Email: <code>admin@example.com</code></p>
-          <p>Password: <code>admin123</code></p>
+          <p>Email: <code>nam@gmail.com</code></p>
+          <p>Password: <code>nam123</code></p>
         </div>
       </div>
     </div>
