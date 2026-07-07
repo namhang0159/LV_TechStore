@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Activity, Clock, MousePointer2, Eye, TrendingUp, Sparkles, AlertCircle, Calendar, Users, Briefcase, Target, Box, Megaphone, Lightbulb, CheckCircle2, XCircle } from 'lucide-react'
+import { Activity, Clock, MousePointer2, Eye, TrendingUp, Sparkles, AlertCircle, Calendar, Users, Briefcase, Target, Box, Megaphone, Lightbulb, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { getAllBehavioralAnalysis } from '@/util/api'
 
 export default function BehavioralAnalysisPage() {
@@ -9,11 +9,11 @@ export default function BehavioralAnalysisPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = async (generate: boolean = false) => {
     setIsLoading(true)
     setError(null)
     try {
-      const res = await getAllBehavioralAnalysis();
+      const res = await getAllBehavioralAnalysis(generate);
       console.log(res);
       if (res.data.success) {
         setAnalysis(res.data.analysis)
@@ -28,7 +28,7 @@ export default function BehavioralAnalysisPage() {
   }
 
   useEffect(() => {
-    fetchAnalysis()
+    fetchAnalysis(false)
   }, [])
 
   const metrics = [
@@ -43,10 +43,20 @@ export default function BehavioralAnalysisPage() {
 
       {/* AI Analysis Section */}
       <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2 border-b border-slate-100 pb-4">
-          <Sparkles className="size-6 text-indigo-500" />
-          Phân Tích & Đề Xuất Từ Trí Tuệ Nhân Tạo
-        </h2>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <Sparkles className="size-6 text-indigo-500" />
+            Phân Tích & Đề Xuất Từ Trí Tuệ Nhân Tạo
+          </h2>
+          <button
+            onClick={() => fetchAnalysis(true)}
+            disabled={isLoading}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            Tạo mới phân tích
+          </button>
+        </div>
 
         {isLoading ? (
           <div className="space-y-6 animate-pulse pt-2">

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { getProductById } from '@/util/api'
 import { ChevronLeft, Edit2, Package, Tag, Layers, Settings, Image as ImageIcon } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 // Types
 interface ProductSpec {
@@ -126,9 +127,9 @@ export default function ProductDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+          <Link href={`/dashboard/products/${id}/edit`} className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
             <Edit2 className="size-4" /> Edit Product
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -188,7 +189,7 @@ export default function ProductDetailPage() {
                 {product.ProductDescriptions.map((desc, idx) => (
                   <div key={idx} className="prose prose-sm max-w-none prose-slate">
                     {desc.type === 'html' ? (
-                      <div dangerouslySetInnerHTML={{ __html: desc.data_json?.content || '' }} />
+                      <div dangerouslySetInnerHTML={{ __html: typeof desc.data_json === 'string' ? desc.data_json : (desc.data_json?.content || '') }} />
                     ) : desc.type === 'features' ? (
                       <ul className="list-disc pl-5">
                         {desc.data_json?.list?.map((item: string, i: number) => (

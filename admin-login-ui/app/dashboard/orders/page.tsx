@@ -94,9 +94,9 @@ export default function OrdersPage() {
           <button className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
             Export
           </button>
-          <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+          <Link href="/dashboard/orders/create" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
             + Add Order
-          </button>
+          </Link>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { 
   getAllCategory, 
@@ -11,7 +11,8 @@ import {
   getAllAttributes, 
   createAttribute, 
   createAttributeValue, 
-  createProduct 
+  getProductById,
+  updateProduct 
 } from '@/util/api'
 import { useToast } from '@/components/ui/use-toast'
 import { Switch } from '@/components/ui/switch'
@@ -26,8 +27,10 @@ interface Brand { id: number; name: string }
 interface Tag { id: number; name: string }
 interface Attribute { id: number; name: string; AttributeValues?: { id: number; value: string }[] }
 
-export default function AddProductPage() {
+export default function EditProductPage() {
+  const params = useParams()
   const router = useRouter()
+  const id = Number(params.id)
   const { toast } = useToast()
   
   const [categories, setCategories] = useState<Category[]>([])
@@ -82,24 +85,78 @@ export default function AddProductPage() {
           getAllAttributes()
         ])
 
-        if (catRes.data?.success) {
-          setCategories(catRes.data.data)
-          if (catRes.data.data.length > 0) setBaseInfo(prev => ({ ...prev, category_id: String(catRes.data.data[0].id) }))
-        }
-        if (brandRes.data?.success) {
-          setBrands(brandRes.data.data)
-          if (brandRes.data.data.length > 0) setBaseInfo(prev => ({ ...prev, brand_id: String(brandRes.data.data[0].id) }))
-        }
+        if (catRes.data?.success) setCategories(catRes.data.data)
+        if (brandRes.data?.success) setBrands(brandRes.data.data)
         if (tagRes.data?.success) setAvailableTags(tagRes.data.data)
         if (attrRes.data?.success) setAvailableAttributes(attrRes.data.data)
+
+        if (id) {
+          const prodRes = await getProductById(id)
+          if (prodRes.data?.data) {
+            const prod = prodRes.data.data
+            setBaseInfo({
+              name: prod.name || '',
+              slug: prod.slug || '',
+              base_price: prod.base_price || '',
+              warranty_months: prod.warranty_months?.toString() || '12',
+              description_short: prod.description_short || '',
+              status: prod.status || 'active',
+              category_id: prod.category_id?.toString() || '',
+              brand_id: prod.brand_id?.toString() || '',
+            })
+            setIsFeatured(prod.is_featured || false)
+            setIsBestSeller(prod.is_best_seller || false)
+
+            if (prod.Tags && prod.Tags.length > 0) {
+              setTags(prod.Tags.map((t: any) => t.id))
+            }
+            if (prod.ProductDescriptions && prod.ProductDescriptions.length > 0) {
+              setDescriptions(prod.ProductDescriptions.map((d: any) => {
+                let content = ''
+                if (typeof d.data_json === 'string') {
+                  content = d.data_json
+                } else if (d.type === 'features') {
+                  content = d.data_json?.list?.join('\n') || ''
+                } else {
+                  content = d.data_json?.content || ''
+                }
+                return {
+                  type: d.type,
+                  data_json: content
+                }
+              }))
+            }
+            if (prod.ProductSpecs && prod.ProductSpecs.length > 0) {
+              setSpecs(prod.ProductSpecs.map((s: any) => ({
+                group_name: s.group_name,
+                label: s.label,
+                value: s.value,
+                sort_order: s.sort_order
+              })))
+            }
+            if (prod.ProductVariants && prod.ProductVariants.length > 0) {
+              setVariants(prod.ProductVariants.map((v: any) => ({
+                id: v.id,
+                price: v.price || '',
+                sku: v.sku || '',
+                status: v.status || 'active',
+                imagesInput: v.ProductVariantImages?.map((img: any) => img.image_url).join(', ') || '',
+                attributes: v.AttributeValues?.map((attr: any) => attr.id) || [],
+                tempAttrName: '',
+                tempAttrValue: '',
+                isAddingAttr: false
+              })))
+            }
+          }
+        }
       } catch (error) {
-        console.error('Failed to load dependencies', error)
+        console.error('Failed to load dependencies or product details', error)
       } finally {
         setIsLoading(false)
       }
     }
     fetchDependencies()
-  }, [])
+  }, [id])
 
   const handleBaseInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -281,11 +338,12 @@ export default function AddProductPage() {
         sort_order: parseInt(s.sort_order as any, 10)
       }))
 
-      const formattedVariants = variants.map(v => ({
+      const formattedVariants = variants.map((v: any) => ({
+        id: v.id,
         price: parseFloat(v.price),
         sku: v.sku,
         status: v.status,
-        images: v.imagesInput.split(',').map(url => url.trim()).filter(url => url),
+        images: v.imagesInput.split(',').map((url: string) => url.trim()).filter((url: string) => url),
         attributes: v.attributes
       }))
 
@@ -297,13 +355,13 @@ export default function AddProductPage() {
         variants: formattedVariants
       }
 
-      await createProduct(finalPayload)
+      await updateProduct(id, finalPayload)
       
-      toast({ title: 'Success', description: 'Product created successfully' })
+      toast({ title: 'Success', description: 'Product updated successfully' })
       router.push('/dashboard/products')
     } catch (error: any) {
       console.error('Submit error:', error)
-      toast({ title: 'Error', description: error?.response?.data?.message || 'Failed to create product', variant: 'destructive' })
+      toast({ title: 'Error', description: error?.response?.data?.message || 'Failed to update product', variant: 'destructive' })
     } finally {
       setIsSubmitting(false)
     }
@@ -325,8 +383,8 @@ export default function AddProductPage() {
             <ChevronLeft className="size-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Add New Product</h1>
-            <p className="text-sm text-slate-500 mt-1">Configure full product details including variants and specs.</p>
+            <h1 className="text-2xl font-bold text-slate-900">Edit Product</h1>
+            <p className="text-sm text-slate-500 mt-1">Update product details including variants and specs.</p>
           </div>
         </div>
       </div>
@@ -625,7 +683,7 @@ export default function AddProductPage() {
           </button>
           <button type="submit" disabled={isSubmitting} className="px-8 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm">
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-            Save Complete Product
+            Save Changes
           </button>
         </div>
       </form>

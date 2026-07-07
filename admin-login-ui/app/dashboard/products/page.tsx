@@ -24,13 +24,22 @@ interface Product {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 10
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setIsLoading(true)
       try {
-        const response = await getAllProducts()
+        const response = await getAllProducts(currentPage, limit)
         if (response.data && response.data.data) {
           setProducts(response.data.data)
+          if (response.data.pagination) {
+            setTotalPages(response.data.pagination.totalPages)
+            setTotalItems(response.data.pagination.totalItems)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch products', error)
@@ -40,7 +49,15 @@ export default function ProductsPage() {
     }
 
     fetchProducts()
-  }, [])
+  }, [currentPage])
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1)
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1)
+  }
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?')) return;
@@ -226,18 +243,26 @@ export default function ProductsPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-white rounded-b-xl">
           <div className="flex items-center gap-1">
-            <button className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+            <button 
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <ChevronLeft className="size-5" />
             </button>
             <button className="w-8 h-8 rounded text-sm font-medium flex items-center justify-center bg-blue-100 text-blue-600">
-              1
+              {currentPage}
             </button>
-            <button className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+            <button 
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <ChevronRight className="size-5" />
             </button>
           </div>
           <div className="text-sm text-slate-500">
-            {products.length} Results
+            {totalItems > 0 ? `${(currentPage - 1) * limit + 1}-${Math.min(currentPage * limit, totalItems)} of ${totalItems}` : '0'} Results
           </div>
         </div>
       </div>

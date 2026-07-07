@@ -8,7 +8,7 @@ import {
   Calendar, FileText, Truck, Store, ShieldCheck,
   Tag, Printer, Phone, X
 } from 'lucide-react'
-import { getOrderById, updateOrderStatus, getAvailableSerials } from '@/util/api'
+import { getOrderById, updateOrderStatus, getAvailableSerials, getAllAdmins } from '@/util/api'
 
 export default function OrderDetailsPage() {
   const params = useParams()
@@ -20,6 +20,8 @@ export default function OrderDetailsPage() {
   const [isFetchingSerials, setIsFetchingSerials] = useState(false)
   const [availableSerialsByItem, setAvailableSerialsByItem] = useState<Record<number, any[]>>({})
   const [selectedSerialsByItem, setSelectedSerialsByItem] = useState<Record<number, number[]>>({})
+  const [staffs, setStaffs] = useState<any[]>([])
+  const [selectedShipperId, setSelectedShipperId] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -28,6 +30,7 @@ export default function OrderDetailsPage() {
         if (response.data && response.data.data) {
           setOrder(response.data.data)
         }
+        console.log("order", response.data.data)
       } catch (error) {
         console.error('Failed to fetch order', error)
       } finally {
@@ -45,6 +48,12 @@ export default function OrderDetailsPage() {
       setIsShippingModalOpen(true)
       setIsFetchingSerials(true)
       try {
+        const staffRes = await getAllAdmins()
+        if (staffRes.data && staffRes.data.data) {
+          const staffList = staffRes.data.data.filter((admin: any) => admin.role === 'staff')
+          setStaffs(staffList)
+        }
+
         const serialsMap: Record<number, any[]> = {}
         const selectedMap: Record<number, number[]> = {}
         for (const item of order.OrderItems) {
@@ -76,6 +85,11 @@ export default function OrderDetailsPage() {
   }
 
   const handleShippingSubmit = async () => {
+    if (!selectedShipperId) {
+      alert("Vui lòng chọn nhân viên giao hàng.")
+      return
+    }
+
     // Validate if all serials are selected
     for (const item of order.OrderItems) {
       const selected = selectedSerialsByItem[item.id] || []
@@ -91,9 +105,10 @@ export default function OrderDetailsPage() {
     }))
 
     try {
-      const response = await updateOrderStatus(Number(id), { 
+      const response = await updateOrderStatus(Number(id), {
         order_status: 'shipping',
-        serial_numbers 
+        serial_numbers,
+        shipper_id: selectedShipperId
       })
       if (response.data && response.data.data) {
         setOrder(response.data.data)
@@ -379,7 +394,7 @@ export default function OrderDetailsPage() {
                   {customerInfo.receiver_name?.charAt(0) || customerInfo.name?.charAt(0) || 'U'}
                 </div>
                 <div>
-                  <p className="font-medium text-slate-900">{customerInfo.receiver_name || customerInfo.name || order.name || 'Unknown'}</p>
+                  <p className="font-medium text-slate-900">{customerInfo.receiver_name || customerInfo.name || order.User.name || 'Unknown'}</p>
                   <p className="text-sm text-slate-500 mt-0.5">Account ID: #{order.user_id}</p>
                 </div>
               </div>
@@ -484,18 +499,33 @@ export default function OrderDetailsPage() {
                 <Truck className="size-5 text-indigo-600" />
                 Chuẩn bị xuất kho (Shipping)
               </h3>
-              <button 
+              <button
                 onClick={() => setIsShippingModalOpen(false)}
                 className="p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <X className="size-5" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               <div className="bg-indigo-50 text-indigo-700 p-4 rounded-lg text-sm flex gap-3">
                 <ShieldCheck className="size-5 flex-shrink-0" />
                 <p>Vui lòng chọn chính xác mã Serial/IMEI cho từng sản phẩm trước khi xuất kho. Thao tác này sẽ tự động trừ hàng trong kho và kích hoạt bảo hành điện tử (nếu có).</p>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-slate-800 mb-2">Nhân viên giao hàng <span className="text-red-500">*</span></label>
+                <select
+                  value={selectedShipperId || ''}
+                  onChange={(e) => setSelectedShipperId(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                >
+                  <option value="" disabled>-- Chọn nhân viên giao hàng --</option>
+                  {staffs.map(staff => (
+                    <option key={staff.id} value={staff.id}>{staff.name} ({staff.email})</option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-slate-500">Người này sẽ chịu trách nhiệm giao đơn hàng này và được hệ thống ghi nhận.</p>
               </div>
 
               {isFetchingSerials ? (
@@ -505,7 +535,7 @@ export default function OrderDetailsPage() {
                   {order.OrderItems?.map((item: any) => {
                     const availableSerials = availableSerialsByItem[item.id] || []
                     const selectedIds = selectedSerialsByItem[item.id] || []
-                    
+
                     const handleSelectSerial = (serialId: number) => {
                       setSelectedSerialsByItem(prev => {
                         const current = prev[item.id] || []
@@ -542,18 +572,18 @@ export default function OrderDetailsPage() {
                               {availableSerials.map((serial: any) => {
                                 const isSelected = selectedIds.includes(serial.id)
                                 return (
-                                  <label 
-                                    key={serial.id} 
+                                  <label
+                                    key={serial.id}
                                     className={`
                                       flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors text-sm
-                                      ${isSelected 
-                                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-medium' 
+                                      ${isSelected
+                                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-medium'
                                         : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                                       }
                                     `}
                                   >
-                                    <input 
-                                      type="checkbox" 
+                                    <input
+                                      type="checkbox"
                                       className="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                                       checked={isSelected}
                                       onChange={() => handleSelectSerial(serial.id)}
@@ -578,15 +608,15 @@ export default function OrderDetailsPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 rounded-b-xl">
-              <button 
+              <button
                 onClick={() => setIsShippingModalOpen(false)}
                 className="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 Hủy bỏ
               </button>
-              <button 
+              <button
                 onClick={handleShippingSubmit}
                 disabled={isFetchingSerials}
                 className="px-6 py-2 rounded-lg font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

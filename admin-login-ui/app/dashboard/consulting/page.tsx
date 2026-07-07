@@ -24,7 +24,7 @@ export default function ConsultingPage() {
       setIsLoading(true)
       try {
         const [prodRes, whRes] = await Promise.all([
-          getAllProducts(),
+          getAllProducts(1, 1000), // Get all products for consulting lookup
           getAllWarehouses()
         ])
         
@@ -108,6 +108,12 @@ export default function ConsultingPage() {
       inv.ProductVariant?.product_id === productId
     )
     return relevantInventories.reduce((acc: number, curr: any) => acc + curr.quantity, 0)
+  }
+
+  const getVariantStock = (variantId: number) => {
+    if (!warehouseDetail || !warehouseDetail.Inventories) return 0
+    const inv = warehouseDetail.Inventories.find((inv: any) => inv.variant_id === variantId || inv.ProductVariant?.id === variantId)
+    return inv ? inv.quantity : 0
   }
 
   return (
@@ -299,25 +305,46 @@ export default function ConsultingPage() {
               <div className="mt-8 pt-6 border-t border-slate-100">
                 <h3 className="flex items-center gap-2 font-semibold text-slate-900 mb-4">
                   <Box className="size-5 text-orange-500" />
-                  Inventory in Current Branch
+                  Inventory by Variant in Current Branch
                 </h3>
-                <div className="p-5 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-slate-700 mb-1">
-                      {warehouses.find(w => w.id.toString() === selectedBranchId)?.name || 'Unknown Branch'}
-                    </div>
-                    <div className="text-xs text-slate-500">Checking all variants for this product</div>
-                  </div>
-                  
-                  {getStockInSelectedBranch(productDetail.id) > 0 ? (
-                    <div className="flex items-center gap-2 text-emerald-600 font-bold text-lg bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-100">
-                      <CheckCircle2 className="size-5" />
-                      {getStockInSelectedBranch(productDetail.id)} units in stock
-                    </div>
+                <div className="space-y-3">
+                  {productDetail.ProductVariants && productDetail.ProductVariants.length > 0 ? (
+                    productDetail.ProductVariants.map((variant: any) => {
+                      const stock = getVariantStock(variant.id)
+                      const imageUrl = variant.ProductVariantImages?.[0]?.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=400&h=400'
+                      const attributes = variant.AttributeValues?.map((attr: any) => attr.value).join(' - ') || ''
+                      
+                      return (
+                        <div key={variant.id} className="p-4 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <img src={imageUrl} alt={variant.sku} className="w-12 h-12 object-contain rounded bg-white border border-slate-200" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            <div>
+                              <div className="text-sm font-bold text-slate-900">
+                                SKU: {variant.sku}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {attributes ? `${attributes} | ` : ''} {formatPrice(variant.price)}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {stock > 0 ? (
+                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-100">
+                              <CheckCircle2 className="size-4" />
+                              {stock} units
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-red-500 font-bold text-sm bg-red-50 px-3 py-1.5 rounded-md border border-red-100">
+                              <XCircle className="size-4" />
+                              Out of stock
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
                   ) : (
-                    <div className="flex items-center gap-2 text-red-500 font-bold text-lg bg-red-50 px-4 py-2 rounded-lg border border-red-100">
-                      <XCircle className="size-5" />
-                      Out of stock
+                    <div className="p-5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-center">
+                      No variants found for this product.
                     </div>
                   )}
                 </div>

@@ -29,17 +29,34 @@ axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Xử lý khi token hết hạn hoặc không hợp lệ
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
       if (typeof window !== "undefined") {
-        // Không redirect nếu đang ở trang login hoặc gọi api login
         if (
           window.location.pathname !== "/" && // admin login is often at /
-          !error.config.url?.includes("/login")
+          !originalRequest.url?.includes("/login") &&
+          !originalRequest.url?.includes("/refresh-token")
         ) {
-          localStorage.removeItem("token");
-          window.location.href = "/";
+          originalRequest._retry = true;
+          try {
+            const refreshToken = localStorage.getItem("refreshToken");
+            if (!refreshToken) throw new Error("No refresh token");
+
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/refresh-token`, { refreshToken });
+            const newAccessToken = res.data.data?.token || res.data.token;
+
+            if (newAccessToken) {
+              localStorage.setItem("token", newAccessToken);
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              return axiosInstance(originalRequest);
+            }
+          } catch (refreshError) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("user");
+            window.location.href = "/";
+          }
         }
       }
     }

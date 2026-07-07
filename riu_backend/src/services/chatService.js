@@ -21,9 +21,9 @@ const getProductContextByIds = async (productIds) => {
 
     try {
         const products = await db.Product.findAll({
-            where: { 
+            where: {
                 id: { [Op.in]: productIds },
-                status: 'active' 
+                status: 'active'
             },
             include: [
                 { model: Category, attributes: ["id", "name", "slug"] },
@@ -32,19 +32,36 @@ const getProductContextByIds = async (productIds) => {
                 {
                     model: ProductVariant,
                     attributes: ["id", "price"],
+                    include: [
+                        {
+                            model: AttributeValue,
+                            attributes: ["value"],
+                            through: { attributes: [] },
+                            include: [{ model: Attribute, attributes: ["name"] }]
+                        }
+                    ]
                 },
             ],
             attributes: ['id', 'name', 'slug', 'warranty_months']
         });
 
-        let contextString = "Danh sách sản phẩm phù hợp nhất với yêu cầu của khách hàng (ID, Tên, Link, Giá, Bảo hành, Cấu hình):\n";
+        let contextString = "Danh sách sản phẩm phù hợp nhất với yêu cầu của khách hàng (ID, Tên, Link, Giá, Bảo hành, Cấu hình, Các phiên bản):\n";
 
         products.forEach(p => {
             let lowestPrice = Infinity;
+            let variantsInfo = [];
             if (p.ProductVariants && p.ProductVariants.length > 0) {
                 p.ProductVariants.forEach(v => {
                     const price = parseFloat(v.price);
                     if (price < lowestPrice) lowestPrice = price;
+
+                    let attrs = [];
+                    if (v.AttributeValues && v.AttributeValues.length > 0) {
+                        attrs = v.AttributeValues.map(av => `${av.Attribute?.name || 'Thuộc tính'}: ${av.value}`);
+                    }
+                    const variantDesc = attrs.length > 0 ? attrs.join(', ') : `Bản ${v.id}`;
+                    const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+                    variantsInfo.push(`[${variantDesc} - Giá: ${formattedPrice}]`);
                 });
             }
             if (lowestPrice === Infinity) lowestPrice = "Liên hệ";
@@ -59,6 +76,9 @@ const getProductContextByIds = async (productIds) => {
 
             const warrantyStr = p.warranty_months ? ` | Bảo hành: ${p.warranty_months} tháng` : "";
             contextString += `- ID: ${p.id} | Tên: ${p.name} | Giá từ: ${lowestPrice} | Link: ${link}${warrantyStr}${specsStr}\n`;
+            if (variantsInfo.length > 0) {
+                contextString += `  + Các phiên bản cụ thể: ${variantsInfo.join('; ')}\n`;
+            }
         });
 
         return contextString;
