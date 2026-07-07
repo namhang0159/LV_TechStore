@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, XCircle, ArrowLeft, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function PaymentResult() {
+function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<string | null>(null);
@@ -81,5 +81,13 @@ export default function PaymentResult() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentResult() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Đang tải...</div>}>
+      <PaymentResultContent />
+    </Suspense>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { FileText, Shield, Cookie, RefreshCw, AlertCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-export default function PoliciesPage() {
+function PoliciesContent() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") || "terms";
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -164,5 +164,13 @@ export default function PoliciesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PoliciesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Đang tải...</div>}>
+      <PoliciesContent />
+    </Suspense>
   );
 }
